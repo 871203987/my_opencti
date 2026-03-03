@@ -1,0 +1,29 @@
+spring:
+  profiles: dev
+
+logging:
+  level:
+    root: DEBUG
+    io.opencti: TRACE
+
+opencti:
+  app:
+    app-logs:
+      logs-level: "debug"
+      logs-console: true
+      logs-files: false
+
+  elasticsearch:
+    url: "http://localhost:9200"
+
+  redis:
+    hostname: "localhost"
+    port: 6379
+
+  rabbitmq:
+    hostname: "localhost"
+    port: 5672
+
+  minio:
+    endpoint: "localhost"
+    port: 9000

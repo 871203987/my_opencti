@@ -1,0 +1,104 @@
+spring:
+  application:
+    name: opencti
+  profiles:
+    active: default
+
+server:
+  port: 4000
+
+logging:
+  level:
+    root: INFO
+    io.opencti: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+opencti:
+  app:
+    port: 4000
+    base-path: ""
+    base-url: "http://localhost:4000/"
+    title: "OpenCTI"
+    description: "OpenCTI Platform"
+    platform-title: "OpenCTI - Cyber Threat Intelligence Platform"
+    platform-favicon: "/static/favicon.ico"
+    platform-version: "6.9.5"
+    admin-email: "admin@opencti.io"
+    admin-password: "ChangeMe"
+    admin-token: "ChangeMe"
+    admin-onboarding: true
+    default-language: "auto"
+    default-marking: false
+    default-marking-value: "TLP:CLEAR"
+    enforce-references: true
+    enforce-consensus: true
+    app-logs:
+      logs-level: "info"
+      logs-files: true
+      logs-console: true
+      logs-max-files: 7
+      logs-directory: "./logs"
+      logs-redacted-inputs:
+        - "password"
+        - "secret"
+        - "token"
+        - "api_key"
+        - "apikey"
+    session:
+      session-secret: "ChangeMe"
+      session-timeout: 28800000
+    cookie:
+      cookie-prefix: "o.a"
+      cookie-secure: true
+      cookie-http-only: true
+
+  elasticsearch:
+    url: "http://localhost:9200"
+    index-prefix: "opencti"
+    username: ""
+    password: ""
+    max-retries: 5
+    request-timeout: 120000
+    scroll-duration: 60000
+    scroll-size: 5000
+    bulk-max-size: 5000
+    bulk-max-time: 5000
+
+  redis:
+    hostname: "localhost"
+    port: 6379
+    password: ""
+    database: 0
+
+  rabbitmq:
+    hostname: "localhost"
+    port: 5672
+    username: "guest"
+    password: "guest"
+    vhost: "/"
+
+  minio:
+    endpoint: "localhost"
+    port: 9000
+    use-ssl: false
+    access-key: "ChangeMe"
+    secret-key: "ChangeMe"
+    bucket-name: "opencti"
+
+  telemetry:
+    enabled: false
+    service-name: "opencti"
+
+  proxy:
+    http-proxy: ""
+    https-proxy: ""
+    no-proxy: ""
+    https-proxy-reject-unauthorized: true

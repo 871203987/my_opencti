@@ -1,0 +1,46 @@
+spring:
+  profiles: test
+
+logging:
+  level:
+    root: WARN
+    io.opencti: DEBUG
+
+opencti:
+  app:
+    port: 4000
+    base-url: "http://localhost:4000/"
+    title: "OpenCTI Test"
+    app-logs:
+      logs-level: "debug"
+      logs-console: true
+      logs-files: false
+    session:
+      session-secret: "test-secret"
+    cookie:
+      cookie-secure: false
+
+  elasticsearch:
+    url: "http://localhost:9200"
+    index-prefix: "opencti_test"
+
+  redis:
+    hostname: "localhost"
+    port: 6379
+    database: 1
+
+  rabbitmq:
+    hostname: "localhost"
+    port: 5672
+
+  minio:
+    endpoint: "localhost"
+    port: 9000
+    bucket-name: "opencti-test"
+
+  telemetry:
+    enabled: false
+
+  proxy:
+    http-proxy: ""
+    https-proxy: ""
