@@ -2,12 +2,22 @@ package io.opencti.database.rabbitmq;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opencti.common.config.RabbitMQProperties;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import java.net.HttpURLConnection;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -36,16 +46,20 @@ import java.util.Map;
 public class RabbitMQManagementClient {
 
     private static final Logger log = LoggerFactory.getLogger(RabbitMQManagementClient.class);
+    private static final String DB_NAME = "messaging_engine";
+    private static final String DB_OPERATION = "metrics";
 
     private final RestClient restClient;
     private final RabbitMQProperties properties;
     private final String queuePrefix;
     private final ObjectMapper objectMapper;
+    private final Tracer tracer;
 
-    public RabbitMQManagementClient(RabbitMQProperties properties) {
+    public RabbitMQManagementClient(RabbitMQProperties properties, Tracer tracer) {
         this.properties = properties;
         this.queuePrefix = properties.queuePrefix() != null ? properties.queuePrefix() : "";
         this.objectMapper = new ObjectMapper();
+        this.tracer = tracer;
         
         String protocol = properties.managementSsl() ? "https" : "http";
         String baseUrl = String.format("%s://%s:%d", 
@@ -55,9 +69,81 @@ public class RabbitMQManagementClient {
         
         this.restClient = RestClient.builder()
                 .baseUrl(baseUrl)
+                .requestFactory(createRequestFactory())
                 .build();
         
-        log.info("[RABBITMQ] Management API client configured for {}", baseUrl);
+        log.info("[RABBITMQ] Management API client configured for {} (SSL reject unauthorized: {})", 
+                baseUrl, properties.managementSslRejectUnauthorized());
+    }
+
+    /**
+     * 创建 HTTP 请求工厂
+     * 重写源文件: rabbitmq.js 第 27 行
+     * 
+     * 源码:
+     * rejectUnauthorized: RABBITMQ_MGMT_REJECT_UNAUTHORIZED,
+     */
+    private ClientHttpRequestFactory createRequestFactory() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        
+        if (properties.managementSsl() && !properties.managementSslRejectUnauthorized()) {
+            factory.setConnectTimeout(java.time.Duration.ofSeconds(10));
+            factory.setReadTimeout(java.time.Duration.ofSeconds(30));
+            configureUnsafeSsl(factory);
+        }
+        
+        return factory;
+    }
+
+    /**
+     * 配置不安全的 SSL（当 managementSslRejectUnauthorized 为 false 时）
+     * 重写源文件: rabbitmq.js 第 27 行
+     * 
+     * 源码:
+     * rejectUnauthorized: RABBITMQ_MGMT_REJECT_UNAUTHORIZED,
+     * 
+     * 注意: 此配置仅用于开发/测试环境，生产环境应使用有效证书
+     */
+    private void configureUnsafeSsl(SimpleClientHttpRequestFactory factory) {
+        try {
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, new TrustManager[] { createTrustAllManager() }, null);
+            
+            final SSLContext finalSslContext = sslContext;
+            factory.setRequestCustomizer(request -> {
+                if (request instanceof HttpURLConnection) {
+                    HttpURLConnection connection = (HttpURLConnection) request;
+                    if (connection instanceof HttpsURLConnection) {
+                        ((HttpsURLConnection) connection).setSSLSocketFactory(finalSslContext.getSocketFactory());
+                        ((HttpsURLConnection) connection).setHostnameVerifier((hostname, session) -> true);
+                    }
+                }
+            });
+            
+            log.warn("[RABBITMQ] SSL certificate validation is DISABLED for Management API. This should only be used in development/testing environments.");
+        } catch (Exception e) {
+            log.error("[RABBITMQ] Failed to configure unsafe SSL: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * 创建信任所有证书的 TrustManager
+     */
+    private X509TrustManager createTrustAllManager() {
+        return new X509TrustManager() {
+            @Override
+            public void checkClientTrusted(X509Certificate[] chain, String authType) {
+            }
+
+            @Override
+            public void checkServerTrusted(X509Certificate[] chain, String authType) {
+            }
+
+            @Override
+            public X509Certificate[] getAcceptedIssuers() {
+                return new X509Certificate[0];
+            }
+        };
     }
 
     /**
@@ -188,12 +274,20 @@ public class RabbitMQManagementClient {
      *     const consumers = pushQueues.length > 0 ? pushQueues[0].consumers : 0;
      *     return { overview, consumers, queues: platformQueues };
      *   };
-     *   ...
+     *   return telemetry(context, user, 'QUEUE metrics', {
+     *     [SEMATTRS_DB_NAME]: 'messaging_engine',
+     *     [SEMATTRS_DB_OPERATION]: 'metrics',
+     *   }, metricApi);
      * };
      */
     @SuppressWarnings("unchecked")
     public RabbitMQMetrics getMetrics() {
-        try {
+        Span span = tracer.nextSpan().name("QUEUE metrics");
+        span.tag("db.name", DB_NAME);
+        span.tag("db.operation", DB_OPERATION);
+        span.start();
+        
+        try (Tracer.SpanInScope ws = tracer.withSpan(span)) {
             Map<String, Object> overview = restClient.get()
                     .uri("/api/overview")
                     .retrieve()
@@ -230,7 +324,10 @@ public class RabbitMQManagementClient {
             
         } catch (RestClientException e) {
             log.error("[RABBITMQ] Failed to get metrics: {}", e.getMessage());
+            span.error(e);
             return new RabbitMQMetrics(null, 0, List.of());
+        } finally {
+            span.end();
         }
     }
 

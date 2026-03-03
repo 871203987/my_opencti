@@ -41,7 +41,9 @@ public record RabbitMQProperties(
     boolean useQuorumQueues,
     // 新增配置项（与 TypeScript 源码一致）
     @Min(1) int portManagement,
-    boolean managementSsl
+    boolean managementSsl,
+    boolean managementSslRejectUnauthorized,
+    boolean useSslRejectUnauthorized
 ) {
     /**
      * 获取管理端口

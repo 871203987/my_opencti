@@ -1,5 +1,7 @@
 package io.opencti.database.rabbitmq;
 
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
 import io.opencti.common.config.RabbitMQProperties;
 import io.opencti.common.exception.DatabaseException;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +39,12 @@ class RabbitMQClientTest {
 
     @Mock
     private RabbitMQProperties properties;
+    
+    @Mock
+    private Tracer tracer;
+    
+    @Mock
+    private Span span;
 
     private RabbitMQClientImpl rabbitMQClient;
 
@@ -50,6 +58,13 @@ class RabbitMQClientTest {
         lenient().when(properties.username()).thenReturn("guest");
         lenient().when(properties.password()).thenReturn("guest");
         lenient().when(properties.getQueueType()).thenReturn("classic");
+        
+        lenient().when(tracer.nextSpan()).thenReturn(span);
+        lenient().when(span.name(anyString())).thenReturn(span);
+        lenient().when(span.tag(anyString(), anyString())).thenReturn(span);
+        lenient().doNothing().when(span).start();
+        lenient().doNothing().when(span).end();
+        lenient().when(tracer.withSpan(any(Span.class))).thenReturn(mock(Tracer.SpanInScope.class));
         
         rabbitMQClient = new RabbitMQClientImpl(
                 rabbitTemplate,
