@@ -1,0 +1,616 @@
+2026-02-13 18:15:22 [main] INFO  c.o.g.GraphqlServiceApplication - Starting GraphqlServiceApplication v1.0.0 using Java 21.0.8 with PID 1532 (D:\project\open_cti\opencti\opencti-java\graphql-service\target\graphql-service-1.0.0.jar started by 87120 in D:\project\open_cti\opencti)
+2026-02-13 18:15:22 [main] INFO  c.o.g.GraphqlServiceApplication - No active profile set, falling back to 1 default profile: "default"
+2026-02-13 18:15:24 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2026-02-13 18:15:24 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.19]
+2026-02-13 18:15:24 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2026-02-13 18:15:25 [main] INFO  o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-02-13 18:15:25 [main] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 6.4.4.Final
+2026-02-13 18:15:25 [main] INFO  o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
+2026-02-13 18:15:25 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-02-13 18:15:25 [main] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:testdb user=SA
+2026-02-13 18:15:25 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-02-13 18:15:25 [main] WARN  org.hibernate.orm.deprecation - HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-02-13 18:15:26 [main] INFO  o.h.e.t.j.p.i.JtaPlatformInitiator - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-02-13 18:15:27 [main] WARN  o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-02-13 18:15:27 [main] WARN  o.s.b.a.s.s.UserDetailsServiceAutoConfiguration - 
+
+Using generated security password: ea739665-d5e2-4c72-84a4-efb1df8215f3
+
+This generated password is for development use only. Your security configuration must be updated before running your application in production.
+
+2026-02-13 18:15:29 [main] INFO  c.o.g.GraphqlServiceApplication - Started GraphqlServiceApplication in 7.328 seconds (process running for 7.796)
+2026-02-13 18:16:10 [http-nio-8082-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-02-13 18:18:51 [main] INFO  c.o.g.GraphqlServiceApplication - Starting GraphqlServiceApplication v1.0.0 using Java 21.0.8 with PID 9152 (D:\project\open_cti\opencti\opencti-java\graphql-service\target\graphql-service-1.0.0.jar started by 87120 in D:\project\open_cti\opencti)
+2026-02-13 18:18:51 [main] INFO  c.o.g.GraphqlServiceApplication - No active profile set, falling back to 1 default profile: "default"
+2026-02-13 18:18:54 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2026-02-13 18:18:54 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.19]
+2026-02-13 18:18:54 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2026-02-13 18:18:55 [main] INFO  o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-02-13 18:18:55 [main] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 6.4.4.Final
+2026-02-13 18:18:55 [main] INFO  o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
+2026-02-13 18:18:55 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-02-13 18:18:56 [main] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:testdb user=SA
+2026-02-13 18:18:56 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-02-13 18:18:56 [main] WARN  org.hibernate.orm.deprecation - HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-02-13 18:18:57 [main] INFO  o.h.e.t.j.p.i.JtaPlatformInitiator - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-02-13 18:19:00 [main] WARN  o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-02-13 18:19:00 [main] WARN  o.s.b.a.s.s.UserDetailsServiceAutoConfiguration - 
+
+Using generated security password: ac508269-2d63-416e-b748-26fb441d8684
+
+This generated password is for development use only. Your security configuration must be updated before running your application in production.
+
+2026-02-13 18:19:04 [main] INFO  c.o.g.GraphqlServiceApplication - Started GraphqlServiceApplication in 13.155 seconds (process running for 13.595)
+2026-02-13 18:19:45 [http-nio-8082-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-02-13 19:49:02 [http-nio-8082-exec-5] WARN  notprivacysafe.graphql.GraphQL - Query did not validate : 'query useVocabularyCategoryQuery {
+  vocabularyCategories {
+    key
+    description
+    entity_types
+    fields {
+      key
+      required
+      multiple
+    }
+  }
+}
+'
+2026-02-13 19:49:02 [http-nio-8082-exec-6] WARN  notprivacysafe.graphql.GraphQL - Query did not validate : 'query LtsLicenseRootQuery {
+  settings {
+    id
+    platform_enterprise_edition {
+      license_by_configuration
+    }
+    ...AppThemeProvider_settings
+    ...AppIntlProvider_settings
+  }
+}
+
+fragment AppIntlProvider_settings on IntlSettings {
+  __isIntlSettings: __typename
+  platform_language
+  platform_translations
+}
+
+fragment AppThemeProvider_settings on ThemeSettings {
+  __isThemeSettings: __typename
+  platform_title
+  platform_favicon
+  platform_theme {
+    name
+    theme_logo
+    theme_logo_login
+    theme_logo_collapsed
+    theme_text_color
+    id
+    built_in
+    theme_nav
+    theme_primary
+    theme_secondary
+    theme_accent
+    theme_background
+    theme_paper
+  }
+}
+'
+2026-02-13 19:49:02 [http-nio-8082-exec-7] WARN  notprivacysafe.graphql.GraphQL - Query did not validate : 'query LoginRootPublicQuery {
+  publicSettings {
+    platform_enterprise_edition_license_validated
+    platform_theme {
+      id
+      name
+      theme_background
+      theme_paper
+      theme_nav
+      theme_primary
+      theme_secondary
+      theme_accent
+      theme_text_color
+      theme_logo
+      theme_logo_collapsed
+      theme_logo_login
+    }
+    platform_login_message
+    platform_consent_message
+    platform_banner_text
+    platform_banner_level
+    platform_consent_confirm_text
+    platform_whitemark
+    platform_providers {
+      name
+      type
+      provider
+    }
+    playground_enabled
+    ...AppIntlProvider_settings
+    ...AppThemeProvider_settings
+    ...PublicSettingsProvider_settings
+    metrics_definition {
+      entity_type
+      metrics {
+        attribute
+        name
+      }
+    }
+    id
+  }
+}
+
+fragment AppIntlProvider_settings on IntlSettings {
+  __isIntlSettings: __typename
+  platform_language
+  platform_translations
+}
+
+fragment AppThemeProvider_settings on ThemeSettings {
+  __isThemeSettings: __typename
+  platform_title
+  platform_favicon
+  platform_theme {
+    name
+    theme_logo
+    theme_logo_login
+    theme_logo_collapsed
+    theme_text_color
+    id
+    built_in
+    theme_nav
+    theme_primary
+    theme_secondary
+    theme_accent
+    theme_background
+    theme_paper
+  }
+}
+
+fragment PublicSettingsProvider_settings on PublicSettings {
+  platform_map_tile_server_light
+  platform_map_tile_server_dark
+}
+'
+2026-02-13 19:49:02 [http-nio-8082-exec-8] WARN  notprivacysafe.graphql.GraphQL - Query did not validate : 'query RootPrivateQuery {
+  me {
+    ...RootMe_data
+    id
+  }
+  settings {
+    ...RootSettings
+    id
+  }
+  about {
+    version
+  }
+  entitySettings {
+    edges {
+      node {
+        id
+        ...EntitySettingSettings_entitySetting
+      }
+    }
+  }
+  schemaSCOs: subTypes(type: "Stix-Cyber-Observable") {
+    edges {
+      node {
+        id
+        label
+      }
+    }
+  }
+  schemaSDOs: subTypes(type: "Stix-Domain-Object") {
+    edges {
+      node {
+        id
+        label
+      }
+    }
+  }
+  schemaSMOs: subTypes(type: "Stix-Meta-Object") {
+    edges {
+      node {
+        id
+        label
+      }
+    }
+  }
+  schemaSCRs: subTypes(type: "stix-core-relationship") {
+    edges {
+      node {
+        id
+        label
+      }
+    }
+  }
+  schemaRelationsTypesMapping {
+    key
+    values
+  }
+  schemaRelationsRefTypesMapping {
+    key
+    values {
+      name
+      toTypes
+    }
+  }
+  filterKeysSchema {
+    entity_type
+    filters_schema {
+      filterKey
+      filterDefinition {
+        filterKey
+        label
+        type
+        multiple
+        subEntityTypes
+        elementsForFilterValuesSearch
+        subFilters {
+          filterKey
+          label
+          type
+          multiple
+          subEntityTypes
+          elementsForFilterValuesSearch
+        }
+      }
+    }
+  }
+  themes(orderBy: created_at, orderMode: desc) {
+    edges {
+      node {
+        id
+        name
+        theme_background
+        theme_accent
+        theme_paper
+        theme_nav
+        theme_primary
+        theme_secondary
+        theme_text_color
+        theme_logo
+        theme_logo_collapsed
+        theme_logo_login
+      }
+    }
+  }
+}
+
+fragment AppIntlProvider_settings on IntlSettings {
+  __isIntlSettings: __typename
+  platform_language
+  platform_translations
+}
+
+fragment AppThemeProvider_settings on ThemeSettings {
+  __isThemeSettings: __typename
+  platform_title
+  platform_favicon
+  platform_theme {
+    name
+    theme_logo
+    theme_logo_login
+    theme_logo_collapsed
+    theme_text_color
+    id
+    built_in
+    theme_nav
+    theme_primary
+    theme_secondary
+    theme_accent
+    theme_background
+    theme_paper
+  }
+}
+
+fragment EntitySettingSettings_entitySetting on EntitySetting {
+  id
+  target_type
+  platform_entity_files_ref
+  platform_hidden_type
+  enforce_reference
+  availableSettings
+  mandatoryAttributes
+  scaleAttributes {
+    name
+    scale
+  }
+  defaultValuesAttributes {
+    name
+    type
+    defaultValues {
+      id
+      name
+    }
+  }
+  overview_layout_customization {
+    key
+    width
+    label
+  }
+  requestAccessConfiguration {
+    id
+    approval_admin {
+      id
+      name
+    }
+    declined_status {
+      id
+      template {
+        id
+        name
+        color
+      }
+    }
+    approved_status {
+      template {
+        id
+        name
+        color
+      }
+      id
+    }
+  }
+}
+
+fragment PasswordPolicies on Settings {
+  password_policy_min_length
+  password_policy_max_length
+  password_policy_min_symbols
+  password_policy_min_numbers
+  password_policy_min_words
+  password_policy_min_lowercase
+  password_policy_min_uppercase
+}
+
+fragment Policies on Settings {
+  id
+  platform_login_message
+  platform_consent_message
+  platform_consent_confirm_text
+  platform_banner_level
+  platform_banner_text
+  password_policy_min_length
+  password_policy_max_length
+  password_policy_min_symbols
+  password_policy_min_numbers
+  password_policy_min_words
+  password_policy_min_lowercase
+  password_policy_min_uppercase
+  platform_providers {
+    name
+    strategy
+  }
+  platform_organization {
+    id
+    name
+  }
+  otp_mandatory
+  view_all_users
+}
+
+fragment RootMe_data on MeUser {
+  id
+  name
+  entity_type
+  lastname
+  api_token
+  language
+  theme
+  user_email
+  individual_id
+  no_creators
+  restrict_delete
+  draftContext {
+    id
+    name
+    draft_status
+    processingCount
+    currentUserAccessRight
+    authorizedMembers {
+      id
+      name
+      entity_type
+      access_right
+      member_id
+      groups_restriction {
+        id
+        name
+      }
+    }
+  }
+  effective_confidence_level {
+    max_confidence
+    overrides {
+      entity_type
+      max_confidence
+    }
+  }
+  capabilities {
+    name
+    id
+  }
+  capabilitiesInDraft {
+    name
+    id
+  }
+  unit_system
+  submenu_show_icons
+  submenu_auto_collapse
+  monochrome_labels
+  default_dashboards {
+    id
+    name
+  }
+  default_dashboard {
+    id
+  }
+  default_time_field
+  default_hidden_types
+  default_marking {
+    entity_type
+    values {
+      id
+      definition
+    }
+  }
+  administrated_organizations {
+    id
+    name
+    authorized_authorities
+  }
+  objectOrganization {
+    edges {
+      node {
+        id
+        name
+      }
+    }
+  }
+  allowed_marking {
+    id
+    entity_type
+    standard_id
+    definition_type
+    definition
+    x_opencti_color
+    x_opencti_order
+  }
+  max_shareable_marking {
+    id
+    definition_type
+    x_opencti_order
+  }
+  can_manage_sensitive_config
+}
+
+fragment RootSettings on Settings {
+  id
+  platform_title
+  platform_demo
+  platform_banner_text
+  request_access_enabled
+  platform_url
+  platform_user_statuses {
+    status
+    message
+  }
+  platform_banner_level
+  platform_critical_alerts {
+    message
+    type
+    details {
+      groups {
+        id
+        name
+      }
+    }
+  }
+  platform_language
+  platform_map_tile_server_dark
+  platform_map_tile_server_light
+  platform_openaev_url
+  platform_opengrc_url
+  platform_xtmhub_url
+  xtm_hub_registration_status
+  platform_whitemark
+  platform_organization {
+    id
+  }
+  platform_session_idle_timeout
+  platform_session_timeout
+  platform_feature_flags {
+    id
+    enable
+  }
+  playground_enabled
+  platform_modules {
+    id
+    enable
+    running
+    warning
+  }
+  filigran_chatbot_ai_cgu_status
+  filigran_chatbot_ai_url
+  platform_enterprise_edition {
+    license_validated
+    license_expired
+    license_expiration_date
+    license_start_date
+    license_expiration_prevention
+    license_valid_cert
+    license_customer
+    license_enterprise
+    license_platform
+    license_platform_match
+    license_type
+    license_extra_expiration
+    license_extra_expiration_days
+  }
+  platform_theme {
+    name
+    theme_logo
+    theme_logo_login
+    theme_logo_collapsed
+    theme_text_color
+    id
+    built_in
+    theme_nav
+    theme_primary
+    theme_secondary
+    theme_accent
+    theme_background
+    theme_paper
+  }
+  ...AppThemeProvider_settings
+  ...AppIntlProvider_settings
+  ...PasswordPolicies
+  ...Policies
+  analytics_google_analytics_v4
+  platform_ai_enabled
+  platform_ai_type
+  platform_ai_has_token
+  platform_trash_enabled
+  platform_protected_sensitive_config {
+    enabled
+    markings {
+      enabled
+      protected_ids
+    }
+    groups {
+      enabled
+      protected_ids
+    }
+    roles {
+      enabled
+      protected_ids
+    }
+    rules {
+      enabled
+      protected_ids
+    }
+    file_indexing {
+      enabled
+      protected_ids
+    }
+    platform_organization {
+      enabled
+      protected_ids
+    }
+    ce_ee_toggle {
+      enabled
+      protected_ids
+    }
+    connector_reset {
+      enabled
+      protected_ids
+    }
+  }
+  xtm_hub_token
+  metrics_definition {
+    entity_type
+    metrics {
+      attribute
+      name
+    }
+  }
+}
+'
+2026-02-13 19:50:51 [http-nio-8082-exec-1] WARN  notprivacysafe.graphql.GraphQL - Query did not validate : 'query { me { id name email } }'
