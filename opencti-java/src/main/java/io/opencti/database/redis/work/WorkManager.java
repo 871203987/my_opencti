@@ -12,11 +12,15 @@ import java.util.Map;
  * Work manager for tracking background job progress.
  * Original file: opencti-platform/opencti-graphql/src/database/redis.ts
  * Original functions: redisInitializeWork, redisGetWork, redisUpdateWorkFigures, isWorkCompleted
+ * 
+ * 键名格式（与 TypeScript 源码一致）:
+ * - Work 数据: 直接使用 workId 作为键名
+ * - Connector 状态: work:{connectorId}
  */
 public class WorkManager {
 
     private static final Logger log = LoggerFactory.getLogger(WorkManager.class);
-    private static final String WORK_PREFIX = "work:";
+    private static final String CONNECTOR_STATUS_PREFIX = "work:";
     private static final int WORK_TTL = 86400;
 
     private final RedisClient redisClient;
@@ -30,18 +34,15 @@ public class WorkManager {
     /**
      * Initialize a work entry.
      * Original: redisInitializeWork function
+     * 原始逻辑: 直接使用 workId 作为键名
      */
     public void initializeWork(String workId) {
         String workKey = buildWorkKey(workId);
         
         Map<String, String> initialData = new HashMap<>();
-        initialData.put("status", WorkStatus.RUNNING.getStatus());
-        initialData.put("import_processed_number", "0");
-        initialData.put("import_expected_number", "0");
-        initialData.put("timestamp", String.valueOf(System.currentTimeMillis()));
+        initialData.put("is_initialized", "true");
         
         redisClient.hset(workKey, initialData);
-        redisClient.expire(workKey, WORK_TTL);
         
         log.debug("[WORK] Initialized work: {}", workId);
     }
@@ -49,6 +50,7 @@ public class WorkManager {
     /**
      * Get work status.
      * Original: redisGetWork function
+     * 原始逻辑: 直接使用 workId 作为键名
      */
     public Map<String, String> getWork(String workId) {
         String workKey = buildWorkKey(workId);
@@ -58,25 +60,27 @@ public class WorkManager {
     /**
      * Update work progress figures.
      * Original: redisUpdateWorkFigures function
+     * 原始逻辑: 如果 workId 包含 '_', 则更新 connector 状态
      */
     public WorkStatus updateWorkFigures(String workId) {
         String workKey = buildWorkKey(workId);
-        Map<String, String> workData = redisClient.hgetall(workKey);
         
-        if (workData.isEmpty()) {
-            return WorkStatus.ERROR;
+        if (workId.contains("_")) {
+            String[] parts = workId.split("_");
+            if (parts.length >= 2) {
+                String connectorId = parts[1];
+                String connectorKey = keyPrefix + CONNECTOR_STATUS_PREFIX + connectorId;
+                redisClient.set(connectorKey, workId);
+            }
         }
         
-        long processed = parseLong(workData.get("import_processed_number"));
-        long expected = parseLong(workData.get("import_expected_number"));
-        String status = workData.get("status");
+        long timestamp = System.currentTimeMillis();
+        redisClient.execute(tx -> {
+            tx.hincrby(workKey, "import_processed_number", 1);
+            tx.hset(workKey, "import_last_processed", String.valueOf(timestamp));
+        });
         
-        if (processed >= expected && expected > 0) {
-            redisClient.hset(workKey, "status", WorkStatus.COMPLETE.getStatus());
-            return WorkStatus.COMPLETE;
-        }
-        
-        return WorkStatus.fromString(status);
+        return isWorkCompleted(workId);
     }
 
     /**
@@ -90,6 +94,16 @@ public class WorkManager {
             return WorkStatus.ERROR;
         }
         
+        String processedStr = workData.get("import_processed_number");
+        String expectedStr = workData.get("import_expected_number");
+        
+        long processed = parseLong(processedStr);
+        long expected = parseLong(expectedStr);
+        
+        if (expected > 0 && processed >= expected) {
+            return WorkStatus.COMPLETE;
+        }
+        
         String status = workData.get("status");
         return WorkStatus.fromString(status);
     }
@@ -100,7 +114,7 @@ public class WorkManager {
      */
     public void updateActionExpectation(String workId, int expectation) {
         String workKey = buildWorkKey(workId);
-        redisClient.hset(workKey, "import_expected_number", String.valueOf(expectation));
+        redisClient.hincrby(workKey, "import_expected_number", expectation);
         log.debug("[WORK] Updated expectation for {}: {}", workId, expectation);
     }
 
@@ -115,9 +129,10 @@ public class WorkManager {
     /**
      * Get connector status.
      * Original: getConnectorStatus function
+     * 原始逻辑: 使用 work:{connectorId} 作为键名
      */
     public String getConnectorStatus(String connectorId) {
-        String connectorKey = keyPrefix + "connector:" + connectorId;
+        String connectorKey = keyPrefix + CONNECTOR_STATUS_PREFIX + connectorId;
         return redisClient.get(connectorKey);
     }
 
@@ -125,8 +140,8 @@ public class WorkManager {
      * Set connector status.
      */
     public void setConnectorStatus(String connectorId, String status) {
-        String connectorKey = keyPrefix + "connector:" + connectorId;
-        redisClient.setex(connectorKey, 3600, status);
+        String connectorKey = keyPrefix + CONNECTOR_STATUS_PREFIX + connectorId;
+        redisClient.set(connectorKey, status);
     }
 
     /**
@@ -162,9 +177,10 @@ public class WorkManager {
 
     /**
      * Build work key.
+     * 原始逻辑: 直接使用 workId，不加前缀
      */
     private String buildWorkKey(String workId) {
-        return keyPrefix + WORK_PREFIX + workId;
+        return keyPrefix + workId;
     }
 
     /**

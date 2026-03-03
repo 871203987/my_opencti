@@ -48,19 +48,28 @@ class ConfigurationTest {
             "http://localhost:9200", "", "", "opencti",
             List.of("http://localhost:9200"), 5, 120000L, 120000L,
             60000L, 5000, 4, 4, 5000, 5000, 10,
-            true, "", "", "", false, "elasticsearch", 10, 100000
+            true, "", "", "", false, "auto",
+            10, 5000,
+            // 新增配置项
+            true, "-000001", false, false, 5000
         );
         
         assertEquals("http://localhost:9200", es.url());
         assertEquals("opencti", es.indexPrefix());
+        assertTrue(es.engineCheck());
+        assertEquals("-000001", es.getIndexCreationPattern());
     }
 
     @Test
     void testRedisPropertiesRecord() {
         RedisProperties redis = new RedisProperties(
-            "localhost", 6379, "", "", 0, false,
-            "", "", "", "", 5, 10000, 30000, "single",
-            "", 3, "", "", "", "", 100, 20, 5, 100, 10, 10000
+            "single", "", "localhost", 6379, null,
+            "", "", 0, false, null,
+            "", "", "", 5, 10000, 30000,
+            3, "", "", "", "",
+            "", "", null, null, null, "",
+            100, 20, 5, 100, 10, 10000,
+            2000000L, "all", null, 4
         );
         
         assertEquals("localhost", redis.hostname());
@@ -71,25 +80,31 @@ class ConfigurationTest {
     void testRabbitMQPropertiesRecord() {
         RabbitMQProperties rabbitmq = new RabbitMQProperties(
             "localhost", 5672, "guest", "guest", "/",
-            false, "", "", "", "", true, 30000, 30, 10, 5, 5000,
-            10, "opencti", "opencti", 5, false
+            false, null, 30000, 30, 10, 5, 5000,
+            10, "opencti", "", 10, false,
+            // 新增配置项
+            15672, false
         );
         
         assertEquals("localhost", rabbitmq.hostname());
         assertEquals(5672, rabbitmq.port());
         assertEquals("guest", rabbitmq.username());
+        assertEquals(15672, rabbitmq.getPortManagement());
     }
 
     @Test
     void testMinioPropertiesRecord() {
         MinioProperties minio = new MinioProperties(
             "localhost", 9000, false, "accessKey", "secretKey",
-            "opencti", "", 30000, 60000, 60000, true, 100, "", true
+            "opencti", "us-east-1", 30000, 60000, 60000, true, 100, "", true,
+            // 新增配置项
+            false, List.of(".DS_Store"), false
         );
         
         assertEquals("localhost", minio.endpoint());
         assertEquals(9000, minio.port());
         assertEquals("opencti", minio.bucketName());
+        assertEquals(List.of(".DS_Store"), minio.getExcludedFiles());
     }
 
     @Test
@@ -157,24 +172,31 @@ class ConfigurationTest {
         ElasticsearchProperties es = new ElasticsearchProperties(
             "http://localhost:9200", "", "", "opencti", List.of("http://localhost:9200"),
             5, 120000L, 120000L, 60000L, 5000, 4, 4, 5000, 5000, 10,
-            true, "", "", "", false, "elasticsearch", 10, 100000
+            true, "", "", "", false, "auto", 10, 5000,
+            true, "-000001", false, false, 5000
         );
         
         RedisProperties redis = new RedisProperties(
-            "localhost", 6379, "", "", 0, false,
-            "", "", "", "", 5, 10000, 30000, "single",
-            "", 3, "", "", "", "", 100, 20, 5, 100, 10, 10000
+            "single", "", "localhost", 6379, null,
+            "", "", 0, false, null,
+            "", "", "", 5, 10000, 30000,
+            3, "", "", "", "",
+            "", "", null, null, null, "",
+            100, 20, 5, 100, 10, 10000,
+            2000000L, "all", null, 4
         );
         
         RabbitMQProperties rabbitmq = new RabbitMQProperties(
             "localhost", 5672, "guest", "guest", "/",
-            false, "", "", "", "", true, 30000, 30, 10, 5, 5000,
-            10, "opencti", "opencti", 5, false
+            false, null, 30000, 30, 10, 5, 5000,
+            10, "opencti", "", 10, false,
+            15672, false
         );
         
         MinioProperties minio = new MinioProperties(
             "localhost", 9000, false, "accessKey", "secretKey",
-            "opencti", "", 30000, 60000, 60000, true, 100, "", true
+            "opencti", "us-east-1", 30000, 60000, 60000, true, 100, "", true,
+            false, List.of(".DS_Store"), false
         );
         
         TelemetryProperties.MetricsProperties metrics = new TelemetryProperties.MetricsProperties(

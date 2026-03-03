@@ -19,7 +19,7 @@ public class SessionManager {
 
     private static final Logger log = LoggerFactory.getLogger(SessionManager.class);
     private static final String SESSION_PREFIX = "session:";
-    private static final String SESSION_LIST_KEY = "sessions";
+    private static final String SESSION_LIST_KEY = "platform_sessions";
 
     private final RedisClient redisClient;
     private final ObjectMapper objectMapper;

@@ -9,6 +9,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -36,7 +37,7 @@ class LockManagerTest {
     @DisplayName("Should acquire lock successfully")
     void testAcquireLock() {
         String resourceId = "resource-123";
-        String lockKey = "opencti:lock:" + resourceId;
+        String lockKey = "opencti:{locks}:resource-123";
         
         doNothing().when(redisClient).set(eq(lockKey), anyString(), eq("NX"), anyInt());
 
@@ -51,8 +52,8 @@ class LockManagerTest {
     @DisplayName("Should release lock on unlock")
     void testReleaseLock() {
         String resourceId = "resource-123";
-        String lockValue = java.util.UUID.randomUUID().toString();
-        String lockKey = "opencti:lock:" + resourceId;
+        String lockValue = UUID.randomUUID().toString();
+        String lockKey = "opencti:{locks}:resource-123";
 
         when(redisClient.get(lockKey)).thenReturn(lockValue);
 
@@ -66,8 +67,8 @@ class LockManagerTest {
     @DisplayName("Should extend lock expiration")
     void testExtendLock() {
         String resourceId = "resource-123";
-        String lockValue = java.util.UUID.randomUUID().toString();
-        String lockKey = "opencti:lock:" + resourceId;
+        String lockValue = UUID.randomUUID().toString();
+        String lockKey = "opencti:{locks}:resource-123";
 
         when(redisClient.get(lockKey)).thenReturn(lockValue);
         when(redisClient.expire(lockKey, 30)).thenReturn(true);
@@ -92,11 +93,10 @@ class LockManagerTest {
     @Test
     @DisplayName("Should fetch latest deletions")
     void testFetchLatestDeletions() {
-        String draftId = "draft-123";
-        when(redisClient.zrange(contains("deletions:" + draftId), anyLong(), anyLong()))
+        when(redisClient.zrange(eq("opencti:platform-deletions"), anyLong(), anyLong()))
             .thenReturn(List.of("id1", "id2"));
 
-        List<String> deletions = lockManager.fetchLatestDeletions(draftId, System.currentTimeMillis());
+        List<String> deletions = lockManager.fetchLatestDeletions();
 
         assertNotNull(deletions);
         assertEquals(2, deletions.size());

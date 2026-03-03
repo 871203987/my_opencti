@@ -15,25 +15,34 @@ import java.util.function.Consumer;
  * Redis Stream client for event streaming.
  * Original file: opencti-platform/opencti-graphql/src/database/redis-stream.ts
  * Original functions: pushToStream, fetchStreamInfo, createStreamProcessor
+ * 
+ * 键名格式（与 TypeScript 源码一致）:
+ * - Live Stream: {prefix}stream
+ * - Notification Stream: {prefix}notifications
+ * - Activity Stream: {prefix}activity
  */
 public class RedisStreamClient {
 
     private static final Logger log = LoggerFactory.getLogger(RedisStreamClient.class);
-    private static final String STREAM_PREFIX = "stream:";
-    private static final String NOTIFICATION_STREAM = "notifications";
-    private static final String ACTIVITY_STREAM = "activity";
+    
+    // Stream names (from stream-utils.ts)
+    public static final String LIVE_STREAM_NAME = "stream";
+    public static final String NOTIFICATION_STREAM_NAME = "notifications";
+    public static final String ACTIVITY_STREAM_NAME = "activity";
 
     private final RedisClient redisClient;
     private final ObjectMapper objectMapper;
     private final String keyPrefix;
-    private final int notificationTrimming;
-    private final int activityTrimming;
+    private final long trimming;
+    private final long notificationTrimming;
+    private final long activityTrimming;
 
-    public RedisStreamClient(RedisClient redisClient, String keyPrefix, int notificationTrimming, int activityTrimming) {
+    public RedisStreamClient(RedisClient redisClient, String keyPrefix, long trimming, long notificationTrimming) {
         this.redisClient = redisClient;
         this.keyPrefix = keyPrefix;
+        this.trimming = trimming;
         this.notificationTrimming = notificationTrimming;
-        this.activityTrimming = activityTrimming;
+        this.activityTrimming = notificationTrimming; // activityTrimming 默认使用 notificationTrimming
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
     }
@@ -41,15 +50,16 @@ public class RedisStreamClient {
     /**
      * Push an event to a stream.
      * Original: rawPushToStream function
+     * 原始逻辑: 键名是 {prefix}{streamName}
      */
     public void pushToStream(String streamName, SseEvent event) {
         try {
             String streamKey = buildStreamKey(streamName);
             Map<String, String> fields = event.toMap();
             
-            int trimming = getTrimmingForStream(streamName);
-            if (trimming > 0) {
-                redisClient.xadd(streamKey, "~", trimming, fields);
+            long streamTrimming = getTrimmingForStream(streamName);
+            if (streamTrimming > 0) {
+                redisClient.xadd(streamKey, "~", streamTrimming, fields);
             } else {
                 redisClient.xadd(streamKey, fields);
             }
@@ -98,7 +108,7 @@ public class RedisStreamClient {
                     .createdAt(Instant.now())
                     .build();
             
-            pushToStream(NOTIFICATION_STREAM, sseEvent);
+            pushToStream(NOTIFICATION_STREAM_NAME, sseEvent);
         } catch (JsonProcessingException e) {
             log.error("[STREAM] Failed to store notification event", e);
         }
@@ -118,7 +128,7 @@ public class RedisStreamClient {
                     .createdAt(Instant.now())
                     .build();
             
-            pushToStream(ACTIVITY_STREAM, sseEvent);
+            pushToStream(ACTIVITY_STREAM_NAME, sseEvent);
         } catch (JsonProcessingException e) {
             log.error("[STREAM] Failed to store activity event", e);
         }
@@ -126,21 +136,23 @@ public class RedisStreamClient {
 
     /**
      * Get trimming value for a stream.
+     * 原始逻辑: 使用配置的 trimming 值
      */
-    private int getTrimmingForStream(String streamName) {
-        if (NOTIFICATION_STREAM.equals(streamName)) {
+    private long getTrimmingForStream(String streamName) {
+        if (NOTIFICATION_STREAM_NAME.equals(streamName)) {
             return notificationTrimming;
-        } else if (ACTIVITY_STREAM.equals(streamName)) {
+        } else if (ACTIVITY_STREAM_NAME.equals(streamName)) {
             return activityTrimming;
         }
-        return 0;
+        return trimming;
     }
 
     /**
      * Build stream key.
+     * 原始逻辑: 直接使用 {prefix}{streamName}，不加额外前缀
      */
     private String buildStreamKey(String streamName) {
-        return keyPrefix + STREAM_PREFIX + streamName;
+        return keyPrefix + streamName;
     }
 
     /**

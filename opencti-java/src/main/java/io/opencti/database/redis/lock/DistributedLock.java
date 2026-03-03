@@ -91,9 +91,10 @@ public class DistributedLock {
 
     /**
      * Build lock key for a resource.
+     * 原始逻辑: 使用 {locks}: 前缀
      */
     private String buildLockKey(String resource) {
-        return keyPrefix + "lock:" + resource;
+        return keyPrefix + "{locks}:" + resource;
     }
 
     /**

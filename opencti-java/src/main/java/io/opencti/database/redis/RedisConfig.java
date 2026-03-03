@@ -5,6 +5,7 @@ import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.SslOptions;
 import io.opencti.common.config.RedisProperties;
+import io.opencti.common.config.RedisProperties.RedisMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -16,9 +17,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Redis configuration.
- * Original file: opencti-platform/opencti-graphql/src/database/redis.ts
- * Original functions: redisOptions, clusterOptions, sentinelOptions, createRedisClient
+ * Redis配置类
+ * 原始文件: opencti-platform/opencti-graphql/src/database/redis.ts
+ * 原始方法: redisOptions, clusterOptions, sentinelOptions, createRedisClient
  */
 @Configuration
 @EnableConfigurationProperties(RedisProperties.class)
@@ -33,8 +34,8 @@ public class RedisConfig {
     }
 
     /**
-     * Create Redis URI for single mode.
-     * Original: redisOptions function
+     * 创建单机模式Redis URI
+     * 原始方法: redisOptions
      */
     public RedisURI createRedisUri(String provider) {
         RedisURI.Builder builder = RedisURI.builder()
@@ -49,7 +50,7 @@ public class RedisConfig {
             builder.withPassword(properties.password().toCharArray());
         }
 
-        if (Boolean.TRUE.equals(properties.useSsl())) {
+        if (properties.useSsl()) {
             builder.withSsl(true);
             builder.withVerifyPeer(false);
         }
@@ -59,8 +60,8 @@ public class RedisConfig {
     }
 
     /**
-     * Create cluster URIs for cluster mode.
-     * Original: generateClusterNodes function
+     * 创建集群模式Redis URI列表
+     * 原始方法: generateClusterNodes
      */
     public List<RedisURI> createClusterUris(String provider) {
         List<RedisURI> uris = new ArrayList<>();
@@ -86,7 +87,7 @@ public class RedisConfig {
                 builder.withPassword(properties.password().toCharArray());
             }
 
-            if (Boolean.TRUE.equals(properties.useSsl())) {
+            if (properties.useSsl()) {
                 builder.withSsl(true);
                 builder.withVerifyPeer(false);
             }
@@ -98,26 +99,27 @@ public class RedisConfig {
     }
 
     /**
-     * Build connection name.
-     * Original: connectionName function
+     * 构建连接名称
+     * 原始方法: connectionName
      */
     private String buildConnectionName(String provider) {
-        String prefix = properties.keyPrefix() != null ? properties.keyPrefix() : "opencti:";
+        String prefix = properties.getKeyPrefix();
         return prefix + provider.replaceAll(" ", "_");
     }
 
     /**
-     * Create SSL options from CA certificates.
-     * Original: configureCA function
+     * 创建SSL选项
+     * 原始方法: configureCA
      */
     private SslOptions createSslOptions() {
-        if (properties.ca() == null || properties.ca().isEmpty()) {
+        List<String> caPaths = properties.ca();
+        if (caPaths == null || caPaths.isEmpty()) {
             return SslOptions.create();
         }
 
         try {
             SslOptions.Builder builder = SslOptions.builder();
-            for (String caPath : properties.ca()) {
+            for (String caPath : caPaths) {
                 File caFile = new File(caPath);
                 if (caFile.exists()) {
                     builder.trustManager(caFile);
@@ -131,15 +133,15 @@ public class RedisConfig {
     }
 
     /**
-     * Create client options.
-     * Original: redisOptions.retryStrategy
+     * 创建客户端选项
+     * 原始方法: redisOptions.retryStrategy
      */
     public ClientOptions createClientOptions(boolean autoReconnect) {
         ClientOptions.Builder builder = ClientOptions.builder()
                 .autoReconnect(autoReconnect)
                 .disconnectedBehavior(ClientOptions.DisconnectedBehavior.REJECT_COMMANDS);
 
-        if (Boolean.TRUE.equals(properties.useSsl())) {
+        if (properties.useSsl()) {
             builder.sslOptions(createSslOptions());
         }
 
@@ -147,9 +149,16 @@ public class RedisConfig {
     }
 
     /**
-     * Get Redis properties.
+     * 获取Redis配置属性
      */
     public RedisProperties getProperties() {
         return properties;
+    }
+
+    /**
+     * 获取Redis模式
+     */
+    public RedisMode getRedisMode() {
+        return properties.getRedisMode();
     }
 }

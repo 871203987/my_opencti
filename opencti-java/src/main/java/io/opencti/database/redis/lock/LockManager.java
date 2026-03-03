@@ -16,8 +16,8 @@ import java.util.UUID;
 public class LockManager {
 
     private static final Logger log = LoggerFactory.getLogger(LockManager.class);
-    private static final String LOCK_PREFIX = "lock:";
-    private static final String DELETION_PREFIX = "deletions:";
+    private static final String LOCK_PREFIX = "{locks}:";
+    private static final String DELETION_KEY = "platform-deletions";
     private static final int MAX_RETRIES = 10;
     private static final long RETRY_DELAY_MS = 100;
 
@@ -102,44 +102,45 @@ public class LockManager {
     /**
      * Add deletions to the deletion tracking list.
      * Original: redisAddDeletions function
+     * 原始逻辑: 键名是 {prefix}platform-deletions
      */
     public void addDeletions(List<String> internalIds, String draftId) {
-        String deletionKey = buildDeletionKey(draftId);
         long timestamp = System.currentTimeMillis();
+        String deletionKey = buildDeletionKey();
         
         redisClient.execute(tx -> {
+            tx.zremrangebyscore(deletionKey, "-inf", String.valueOf(timestamp - 5000));
+            
             for (String internalId : internalIds) {
-                tx.zadd(deletionKey, timestamp, internalId);
+                String id = draftId != null ? internalId + draftId : internalId;
+                tx.zadd(deletionKey, timestamp, id);
             }
-            tx.expire(deletionKey, 3600);
         });
         
-        log.debug("[LOCK] Added {} deletions for draft: {}", internalIds.size(), draftId);
+        log.debug("[LOCK] Added {} deletions", internalIds.size());
     }
 
     /**
-     * Fetch latest deletions since a timestamp.
+     * Fetch latest deletions.
      * Original: redisFetchLatestDeletions function
+     * 原始逻辑: 返回最近5秒内的删除记录
      */
-    public List<String> fetchLatestDeletions(String draftId, long sinceTimestamp) {
-        String deletionKey = buildDeletionKey(draftId);
-        String min = String.valueOf(sinceTimestamp);
-        String max = String.valueOf(System.currentTimeMillis());
+    public List<String> fetchLatestDeletions() {
+        long timestamp = System.currentTimeMillis();
+        String deletionKey = buildDeletionKey();
         
-        List<String> deletions = redisClient.zrange(deletionKey, 0, -1);
+        redisClient.zremrangebyscore(deletionKey, "-inf", String.valueOf(timestamp - 5000));
         
-        redisClient.zremrangebyscore(deletionKey, "0", min);
-        
-        return deletions;
+        return redisClient.zrange(deletionKey, 0, -1);
     }
 
     /**
-     * Clear deletions for a draft.
+     * Clear all deletions.
      */
-    public void clearDeletions(String draftId) {
-        String deletionKey = buildDeletionKey(draftId);
+    public void clearDeletions() {
+        String deletionKey = buildDeletionKey();
         redisClient.del(deletionKey);
-        log.debug("[LOCK] Cleared deletions for draft: {}", draftId);
+        log.debug("[LOCK] Cleared all deletions");
     }
 
     /**
@@ -150,10 +151,11 @@ public class LockManager {
     }
 
     /**
-     * Build deletion key for a draft.
+     * Build deletion key.
+     * 原始逻辑: 使用 {prefix}platform-deletions
      */
-    private String buildDeletionKey(String draftId) {
-        return keyPrefix + DELETION_PREFIX + (draftId != null ? draftId : "default");
+    private String buildDeletionKey() {
+        return keyPrefix + DELETION_KEY;
     }
 
     /**

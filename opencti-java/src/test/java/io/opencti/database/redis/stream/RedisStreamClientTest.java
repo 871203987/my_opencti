@@ -45,9 +45,9 @@ class RedisStreamClientTest {
             .createdAt(Instant.now())
             .build();
 
-        streamClient.pushToStream("test-stream", event);
+        streamClient.pushToStream("stream", event);
 
-        verify(redisClient).xadd(contains("stream:test-stream"), anyMap());
+        verify(redisClient).xadd(eq("opencti:stream"), eq("~"), eq(50000L), anyMap());
     }
 
     @Test
@@ -63,18 +63,18 @@ class RedisStreamClientTest {
 
         streamClient.pushToStream("notifications", event);
 
-        verify(redisClient).xadd(contains("stream:notifications"), eq("~"), eq(50000L), anyMap());
+        verify(redisClient).xadd(eq("opencti:notifications"), eq("~"), eq(50000L), anyMap());
     }
 
     @Test
     @DisplayName("Should fetch stream info")
     void testFetchStreamInfo() {
-        when(redisClient.xinfo(contains("stream:"))).thenReturn(Map.of("length", 100L));
+        when(redisClient.xinfo("opencti:stream")).thenReturn(Map.of("length", 100L));
 
-        RedisStreamClient.StreamInfo info = streamClient.fetchStreamInfo("test-stream");
+        RedisStreamClient.StreamInfo info = streamClient.fetchStreamInfo("stream");
 
         assertNotNull(info);
-        verify(redisClient).xinfo(contains("stream:test-stream"));
+        verify(redisClient).xinfo("opencti:stream");
     }
 
     @Test
@@ -88,7 +88,7 @@ class RedisStreamClientTest {
 
         streamClient.storeNotificationEvent(event);
 
-        verify(redisClient).xadd(contains("stream:notifications"), eq("~"), eq(50000L), anyMap());
+        verify(redisClient).xadd(eq("opencti:notifications"), eq("~"), eq(50000L), anyMap());
     }
 
     @Test
@@ -102,7 +102,7 @@ class RedisStreamClientTest {
 
         streamClient.storeActivityEvent(event);
 
-        verify(redisClient).xadd(contains("stream:activity"), eq("~"), eq(50000L), anyMap());
+        verify(redisClient).xadd(eq("opencti:activity"), eq("~"), eq(50000L), anyMap());
     }
 
     @Test
@@ -110,7 +110,7 @@ class RedisStreamClientTest {
     void testCreateStreamProcessor() {
         java.util.function.Consumer<List<SseEvent>> callback = events -> {};
         
-        StreamProcessor processor = streamClient.createStreamProcessor("provider", "test-stream", callback);
+        StreamProcessor processor = streamClient.createStreamProcessor("provider", "stream", callback);
 
         assertNotNull(processor);
     }

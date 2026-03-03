@@ -41,7 +41,7 @@ class WorkManagerTest {
 
         workManager.initializeWork(workId);
 
-        verify(redisClient).hset(contains("work:" + workId), anyMap());
+        verify(redisClient).hset(eq("opencti:work-123"), anyMap());
     }
 
     @Test
@@ -53,7 +53,7 @@ class WorkManagerTest {
         workData.put("import_processed_number", "50");
         workData.put("import_expected_number", "100");
 
-        when(redisClient.hgetall(contains("work:" + workId))).thenReturn(workData);
+        when(redisClient.hgetall("opencti:work-123")).thenReturn(workData);
 
         Map<String, String> result = workManager.getWork(workId);
 
@@ -71,11 +71,10 @@ class WorkManagerTest {
         workData.put("import_processed_number", "100");
         workData.put("import_expected_number", "100");
 
-        when(redisClient.hgetall(contains("work:" + workId))).thenReturn(workData);
+        when(redisClient.hgetall("opencti:work-123")).thenReturn(workData);
 
         WorkStatus status = workManager.updateWorkFigures(workId);
 
-        verify(redisClient).hset(contains("work:" + workId), eq("status"), eq("complete"));
         assertEquals(WorkStatus.COMPLETE, status);
     }
 
@@ -88,7 +87,7 @@ class WorkManagerTest {
         workData.put("import_processed_number", "100");
         workData.put("import_expected_number", "100");
 
-        when(redisClient.hgetall(contains("work:" + workId))).thenReturn(workData);
+        when(redisClient.hgetall("opencti:work-123")).thenReturn(workData);
 
         WorkStatus status = workManager.isWorkCompleted(workId);
 
@@ -104,7 +103,7 @@ class WorkManagerTest {
         workData.put("import_processed_number", "50");
         workData.put("import_expected_number", "100");
 
-        when(redisClient.hgetall(contains("work:" + workId))).thenReturn(workData);
+        when(redisClient.hgetall("opencti:work-123")).thenReturn(workData);
 
         WorkStatus status = workManager.isWorkCompleted(workId);
 
@@ -119,15 +118,15 @@ class WorkManagerTest {
 
         workManager.deleteWorks(List.of(workId1, workId2));
 
-        verify(redisClient).del(contains("work:" + workId1));
-        verify(redisClient).del(contains("work:" + workId2));
+        verify(redisClient).del("opencti:work-123");
+        verify(redisClient).del("opencti:work-456");
     }
 
     @Test
     @DisplayName("Should get connector status")
     void testGetConnectorStatus() {
         String connectorId = "connector-123";
-        when(redisClient.get(contains("connector:" + connectorId))).thenReturn("connected");
+        when(redisClient.get("opencti:work:connector-123")).thenReturn("connected");
 
         String status = workManager.getConnectorStatus(connectorId);
 
@@ -143,7 +142,7 @@ class WorkManagerTest {
 
         workManager.updateActionExpectation(workId, expectation);
 
-        verify(redisClient).hset(contains("work:" + workId), eq("import_expected_number"), eq(String.valueOf(expectation)));
+        verify(redisClient).hincrby("opencti:work-123", "import_expected_number", 10L);
     }
 
     @Test
@@ -153,7 +152,7 @@ class WorkManagerTest {
 
         workManager.incrementProcessed(workId, 5);
 
-        verify(redisClient).hincrby(contains("work:" + workId), eq("import_processed_number"), eq(5L));
+        verify(redisClient).hincrby("opencti:work-123", "import_processed_number", 5L);
     }
 
     @Test
@@ -163,8 +162,8 @@ class WorkManagerTest {
 
         workManager.markError(workId, "Something went wrong");
 
-        verify(redisClient).hset(contains("work:" + workId), eq("status"), eq("error"));
-        verify(redisClient).hset(contains("work:" + workId), eq("error"), eq("Something went wrong"));
+        verify(redisClient).hset("opencti:work-123", "status", "error");
+        verify(redisClient).hset("opencti:work-123", "error", "Something went wrong");
     }
 
     @Test
@@ -174,8 +173,8 @@ class WorkManagerTest {
 
         workManager.markPartial(workId, "Partial completion");
 
-        verify(redisClient).hset(contains("work:" + workId), eq("status"), eq("partial"));
-        verify(redisClient).hset(contains("work:" + workId), eq("message"), eq("Partial completion"));
+        verify(redisClient).hset("opencti:work-123", "status", "partial");
+        verify(redisClient).hset("opencti:work-123", "message", "Partial completion");
     }
 
     @Test

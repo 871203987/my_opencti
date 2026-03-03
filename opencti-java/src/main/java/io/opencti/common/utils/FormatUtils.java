@@ -10,8 +10,23 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 重写自: opencti-graphql/src/utils/format.js
+ * 重写自: opencti-platform/opencti-graphql/src/utils/format.js
  * 格式化工具类
+ * 
+ * 原始函数:
+ * - schedulingPeriodToMs: 调度周期转毫秒
+ * - utcDate: UTC日期
+ * - utcEpochTime: UTC纪元时间
+ * - now: 当前时间
+ * - nowTime: 当前时间字符串
+ * - sinceNowInMinutes: 距今分钟数
+ * - truncate: 字符串截断
+ * - dateFormat: 日期格式化
+ * - timeFormat: 时间格式化
+ * - prepareDate: 日期准备
+ * - yearFormat: 年份格式化
+ * - monthFormat: 月份格式化
+ * - dayFormat: 日期格式化
  */
 public final class FormatUtils {
 
@@ -19,10 +34,20 @@ public final class FormatUtils {
     public static final String UNTIL_END_STR = "5138-11-16T09:46:40.000Z";
     public static final long FROM_START = 0L;
     public static final long UNTIL_END = 100000000000000L;
+    
+    private static final int DEFAULT_TRUNCATE_LIMIT = 64;
 
     private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
             .withZone(ZoneId.of("UTC"));
-    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss")
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS")
+            .withZone(ZoneId.of("UTC"));
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+            .withZone(ZoneId.of("UTC"));
+    private static final DateTimeFormatter YEAR_FORMATTER = DateTimeFormatter.ofPattern("yyyy")
+            .withZone(ZoneId.of("UTC"));
+    private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM")
+            .withZone(ZoneId.of("UTC"));
+    private static final DateTimeFormatter DAY_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd")
             .withZone(ZoneId.of("UTC"));
 
     private static final Map<String, Long> SCHEDULING_PERIODS = new HashMap<>();
@@ -104,6 +129,151 @@ public final class FormatUtils {
     }
 
     /**
+     * 重写自: opencti-graphql/src/utils/format.js - sinceNowInMinutes
+     * 计算从指定时间到现在经过的分钟数
+     *
+     * @param lastModified 最后修改时间
+     * @return 经过的分钟数
+     */
+    public static long sinceNowInMinutes(Instant lastModified) {
+        if (lastModified == null) {
+            return 0;
+        }
+        return ChronoUnit.MINUTES.between(lastModified, Instant.now());
+    }
+
+    /**
+     * 重写自: opencti-graphql/src/utils/format.js - truncate
+     * 截断字符串到指定长度
+     * 
+     * @param str 要截断的字符串
+     * @param limit 最大长度
+     * @return 截断后的字符串
+     */
+    public static String truncate(String str, int limit) {
+        return truncate(str, limit, true);
+    }
+
+    /**
+     * 重写自: opencti-graphql/src/utils/format.js - truncate
+     * 截断字符串到指定长度
+     * 
+     * @param str 要截断的字符串
+     * @param limit 最大长度
+     * @param withPoints 是否添加省略号
+     * @return 截断后的字符串
+     */
+    public static String truncate(String str, int limit, boolean withPoints) {
+        if (str == null || str.length() <= limit) {
+            return str;
+        }
+        String trimmedStr = str.substring(0, limit);
+        if (!withPoints) {
+            return trimmedStr;
+        }
+        if (!trimmedStr.contains(" ")) {
+            return trimmedStr + "...";
+        }
+        int lastSpaceIndex = trimmedStr.lastIndexOf(' ');
+        return trimmedStr.substring(0, Math.min(trimmedStr.length(), lastSpaceIndex)) + "...";
+    }
+
+    /**
+     * 重写自: opencti-graphql/src/utils/format.js - truncate (默认)
+     * 使用默认限制截断字符串
+     * 
+     * @param str 要截断的字符串
+     * @return 截断后的字符串
+     */
+    public static String truncate(String str) {
+        return truncate(str, DEFAULT_TRUNCATE_LIMIT, true);
+    }
+
+    /**
+     * 重写自: opencti-graphql/src/utils/format.js - prepareDate
+     * 准备日期字符串（格式化为标准格式）
+     * 
+     * @param instant 时间戳
+     * @return 格式化后的日期字符串
+     */
+    public static String prepareDate(Instant instant) {
+        if (instant == null) {
+            return null;
+        }
+        return DATE_FORMATTER.format(instant);
+    }
+
+    /**
+     * 重写自: opencti-graphql/src/utils/format.js - dateFormat
+     * 格式化日期为完整格式
+     * 
+     * @param instant 时间戳
+     * @return 格式化后的日期字符串
+     */
+    public static String dateFormat(Instant instant) {
+        if (instant == null) {
+            return null;
+        }
+        return DATE_FORMATTER.format(instant);
+    }
+
+    /**
+     * 重写自: opencti-graphql/src/utils/format.js - timeFormat
+     * 格式化时间为时间格式
+     * 
+     * @param instant 时间戳
+     * @return 格式化后的时间字符串
+     */
+    public static String timeFormat(Instant instant) {
+        if (instant == null) {
+            return null;
+        }
+        return TIME_FORMATTER.format(instant);
+    }
+
+    /**
+     * 重写自: opencti-graphql/src/utils/format.js - yearFormat
+     * 格式化日期为年份格式
+     * 
+     * @param instant 时间戳
+     * @return 年份字符串
+     */
+    public static String yearFormat(Instant instant) {
+        if (instant == null) {
+            return null;
+        }
+        return YEAR_FORMATTER.format(instant);
+    }
+
+    /**
+     * 重写自: opencti-graphql/src/utils/format.js - monthFormat
+     * 格式化日期为月份格式
+     * 
+     * @param instant 时间戳
+     * @return 年月字符串
+     */
+    public static String monthFormat(Instant instant) {
+        if (instant == null) {
+            return null;
+        }
+        return MONTH_FORMATTER.format(instant);
+    }
+
+    /**
+     * 重写自: opencti-graphql/src/utils/format.js - dayFormat
+     * 格式化日期为日期格式
+     * 
+     * @param instant 时间戳
+     * @return 年月日字符串
+     */
+    public static String dayFormat(Instant instant) {
+        if (instant == null) {
+            return null;
+        }
+        return DAY_FORMATTER.format(instant);
+    }
+
+    /**
      * 重写自: opencti-graphql/src/utils/format.js - isDateInRange
      * 检查日期是否在指定范围内
      *
@@ -157,20 +327,6 @@ public final class FormatUtils {
     public static String streamEventId(Instant instant, int index) {
         long timestamp = instant != null ? instant.toEpochMilli() : Instant.now().toEpochMilli();
         return timestamp + "-" + index;
-    }
-
-    /**
-     * 重写自: opencti-graphql/src/utils/format.js - sinceNowInMinutes
-     * 计算从指定时间到现在经过的分钟数
-     *
-     * @param lastModified 最后修改时间
-     * @return 经过的分钟数
-     */
-    public static long sinceNowInMinutes(Instant lastModified) {
-        if (lastModified == null) {
-            return 0;
-        }
-        return ChronoUnit.MINUTES.between(lastModified, Instant.now());
     }
 
     /**

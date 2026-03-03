@@ -9,6 +9,7 @@ import io.lettuce.core.cluster.api.sync.RedisAdvancedClusterCommands;
 import io.lettuce.core.cluster.pubsub.StatefulRedisClusterPubSubConnection;
 import io.lettuce.core.pubsub.RedisPubSubListener;
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
+import io.opencti.common.config.RedisProperties.RedisMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +42,7 @@ public class RedisClientImpl implements RedisClient {
         this.config = config;
         this.provider = provider;
         this.mode = config.getProperties().getRedisMode();
-        this.keyPrefix = config.getProperties().keyPrefix();
+        this.keyPrefix = config.getProperties().getKeyPrefix();
         initialize(autoReconnect);
     }
 
