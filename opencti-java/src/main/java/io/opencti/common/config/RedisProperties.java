@@ -2,6 +2,8 @@ package io.opencti.common.config;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
 import java.util.List;
 
 /**
@@ -24,6 +26,7 @@ import java.util.List;
  * - redis:nat_map - NAT映射
  * - redis:host_ip_family - IP协议版本
  */
+@ConfigurationProperties(prefix = "opencti.redis")
 public record RedisProperties(
     String mode,
     String namespace,

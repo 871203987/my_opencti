@@ -1,11 +1,13 @@
 package io.opencti.common.config;
 
 import jakarta.validation.Valid;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * 重写自: opencti-graphql/src/config/tracing.ts
  * 遥测配置属性（OpenTelemetry）
  */
+@ConfigurationProperties(prefix = "opencti.telemetry")
 public record TelemetryProperties(
     boolean enabled,
     String exporterOtlp,

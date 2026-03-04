@@ -2,6 +2,8 @@ package io.opencti.common.config;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
 import java.util.List;
 
 /**
@@ -20,6 +22,7 @@ import java.util.List;
  * - excluded_files: 排除文件列表
  * - disable_checksum_validation: 禁用校验验证
  */
+@ConfigurationProperties(prefix = "opencti.minio")
 public record MinioProperties(
     @NotBlank String endpoint,
     @Min(1) int port,

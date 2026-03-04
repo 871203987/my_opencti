@@ -2,6 +2,8 @@ package io.opencti.common.config;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
 import java.util.List;
 
 /**
@@ -22,6 +24,7 @@ import java.util.List;
  * - max_runtime_resolutions: 最大运行时解析
  * - max_concurrency: 最大并发数
  */
+@ConfigurationProperties(prefix = "opencti.elasticsearch")
 public record ElasticsearchProperties(
     @NotBlank String url,
     String username,

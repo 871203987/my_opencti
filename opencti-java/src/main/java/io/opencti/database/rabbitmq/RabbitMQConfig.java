@@ -191,11 +191,11 @@ public class RabbitMQConfig {
     }
 
     /**
-     * 创建 AmqpAdmin
+     * 创建 RabbitAdmin
      */
     @Bean
     @ConditionalOnMissingBean
-    public AmqpAdmin amqpAdmin(ConnectionFactory connectionFactory) {
+    public RabbitAdmin rabbitAdmin(ConnectionFactory connectionFactory) {
         return new RabbitAdmin(connectionFactory);
     }
 

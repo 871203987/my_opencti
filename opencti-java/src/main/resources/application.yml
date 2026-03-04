@@ -63,20 +63,42 @@ opencti:
   elasticsearch:
     url: "http://localhost:9200"
     index-prefix: "opencti"
-    username: ""
-    password: ""
+    username: "admin"
+    password: "admin"
+    engine-selector: "auto"
+    ssl-verification: false
     max-retries: 5
     request-timeout: 120000
+    ping-timeout: 30000
     scroll-duration: 60000
     scroll-size: 5000
+    max-concurrent-searches: 10
+    max-concurrent-normalizations: 10
     bulk-max-size: 5000
     bulk-max-time: 5000
+    bulk-max-retry: 5
+    max-connection-retries: 5
+    max-result-window: 100000
+    max-runtime-resolutions: 5000
 
   redis:
     hostname: "localhost"
     port: 6379
     password: ""
     database: 0
+    namespace: "opencti"
+    mode: "single"
+    use-ssl: false
+    connection-timeout: 10000
+    operation-timeout: 5000
+    max-retries: 5
+    pool-max-total: 50
+    pool-max-idle: 10
+    trimming: 50000
+    stream-batch-size: 100
+    stream-max-consumers: 10
+    stream-max-pending-entries: 10000
+    cluster-max-redirects: 5
 
   rabbitmq:
     hostname: "localhost"
@@ -84,6 +106,18 @@ opencti:
     username: "guest"
     password: "guest"
     vhost: "/"
+    queue-prefix: "opencti"
+    use-ssl: false
+    port-management: 15672
+    management-ssl: false
+    connection-timeout: 30000
+    heartbeat-interval: 30
+    max-retries: 5
+    retry-delay: 1000
+    prefetch-count: 10
+    consumer-concurrency: 5
+    queue-max-priority: 10
+    queue-type: "classic"
 
   minio:
     endpoint: "localhost"
@@ -92,6 +126,11 @@ opencti:
     access-key: "ChangeMe"
     secret-key: "ChangeMe"
     bucket-name: "opencti"
+    bucket-region: "us-east-1"
+    connection-timeout: 10000
+    read-timeout: 60000
+    write-timeout: 60000
+    max-connections: 100
 
   telemetry:
     enabled: false

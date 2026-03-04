@@ -2,6 +2,8 @@ package io.opencti.common.config;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
 import java.util.List;
 
 /**
@@ -21,6 +23,7 @@ import java.util.List;
  * - password: 密码
  * - queue_type: 队列类型 (classic/quorum)
  */
+@ConfigurationProperties(prefix = "opencti.rabbitmq")
 public record RabbitMQProperties(
     @NotBlank String hostname,
     @Min(1) int port,

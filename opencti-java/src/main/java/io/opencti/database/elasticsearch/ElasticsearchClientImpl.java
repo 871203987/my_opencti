@@ -8,13 +8,22 @@ import co.elastic.clients.elasticsearch.indices.GetIndexRequest;
 import co.elastic.clients.elasticsearch.indices.GetIndexResponse;
 import co.elastic.clients.elasticsearch.indices.GetMappingRequest;
 import co.elastic.clients.elasticsearch.indices.GetMappingResponse;
+import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.endpoints.BooleanResponse;
+import co.elastic.clients.transport.rest_client.RestClientTransport;
+import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestClientBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 import java.io.ByteArrayInputStream;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
@@ -71,8 +80,10 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
             
             return true;
         } catch (Exception e) {
-            log.error("[SEARCH] Failed to initialize search engine", e);
-            throw new RuntimeException("Search engine initialization failed", e);
+            log.warn("[SEARCH] Elasticsearch not available, running in degraded mode: {}", e.getMessage());
+            this.enginePlatform = "unknown";
+            this.engineVersion = "0.0.0";
+            return false;
         }
     }
 
@@ -81,17 +92,45 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
      * 重写自: engine.ts - searchEngineInit() (行361-380)
      */
     private co.elastic.clients.elasticsearch.ElasticsearchClient createElasticsearchClient() {
-        // TODO: 完整实现SSL配置和认证
-        // 目前使用基本配置
         String url = config.getUrl();
         String username = config.getUsername();
         String password = config.getPassword();
         
         log.info("[SEARCH] Creating Elasticsearch client for URL: {}", url);
         
-        // 使用Spring Boot自动配置的ElasticsearchClient
-        // 这里返回null，由Spring注入
-        return null;
+        try {
+            URI uri = new URI(url);
+            String host = uri.getHost();
+            int port = uri.getPort() > 0 ? uri.getPort() : 9200;
+            String scheme = uri.getScheme() != null ? uri.getScheme() : "http";
+            
+            HttpHost httpHost = new HttpHost(host, port, scheme);
+            
+            RestClientBuilder builder = RestClient.builder(httpHost);
+            
+            if (username != null && !username.isEmpty() && password != null && !password.isEmpty()) {
+                builder.setHttpClientConfigCallback(httpClientBuilder -> {
+                    BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+                    credentialsProvider.setCredentials(
+                            new AuthScope(httpHost),
+                            new UsernamePasswordCredentials(username, password)
+                    );
+                    httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+                    return httpClientBuilder;
+                });
+            }
+            
+            RestClient restClient = builder.build();
+            RestClientTransport transport = new RestClientTransport(
+                    restClient, 
+                    new JacksonJsonpMapper()
+            );
+            
+            return new co.elastic.clients.elasticsearch.ElasticsearchClient(transport);
+        } catch (Exception e) {
+            log.error("[SEARCH] Failed to create Elasticsearch client: {}", e.getMessage());
+            throw new RuntimeException("Failed to create Elasticsearch client", e);
+        }
     }
 
     /**

@@ -3,6 +3,8 @@ package io.opencti.common.config;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
 import java.util.List;
 import java.util.Map;
 
@@ -10,6 +12,7 @@ import java.util.Map;
  * 重写自: opencti-graphql/src/config/conf.js
  * 应用配置属性
  */
+@ConfigurationProperties(prefix = "opencti.app")
 public record AppProperties(
     @Min(1) int port,
     String basePath,
