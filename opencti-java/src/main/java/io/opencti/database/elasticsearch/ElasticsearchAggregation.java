@@ -77,10 +77,10 @@ public class ElasticsearchAggregation {
             SearchRequest.Builder requestBuilder = new SearchRequest.Builder()
                     .index(indices)
                     .size(0)
-                    .aggregation(aggregationName, a -> a
+                    .aggregations(Map.of(aggregationName, Aggregation.of(a -> a
                             .dateHistogram(dh -> dh
                                     .field(field)
-                                    .calendarInterval(CalendarInterval.valueOf(interval.toLowerCase()))));
+                                    .calendarInterval(CalendarInterval.valueOf(interval.toLowerCase()))))));
             
             if (query != null) {
                 requestBuilder.query(query);
@@ -125,10 +125,10 @@ public class ElasticsearchAggregation {
             SearchRequest.Builder requestBuilder = new SearchRequest.Builder()
                     .index(indices)
                     .size(0)
-                    .aggregation(aggregationName, a -> a
+                    .aggregations(Map.of(aggregationName, Aggregation.of(a -> a
                             .terms(t -> t
                                     .field(field + ".keyword")
-                                    .size(size > 0 ? size : ElasticsearchConstants.MAX_AGGREGATION_SIZE)));
+                                    .size(size > 0 ? size : ElasticsearchConstants.MAX_AGGREGATION_SIZE)))));
             
             if (query != null) {
                 requestBuilder.query(query);
@@ -187,17 +187,17 @@ public class ElasticsearchAggregation {
             SearchRequest.Builder requestBuilder = new SearchRequest.Builder()
                     .index(indices)
                     .size(0)
-                    .aggregation(aggregationName, a -> a
+                    .aggregations(Map.of(aggregationName, Aggregation.of(a -> a
                             .nested(n -> n.path(nestedPath))
-                            .aggregations("inner", ia -> ia
+                            .aggregations("inner", Aggregation.of(ia -> ia
                                     .filter(f -> {
                                         if (filterQuery != null) {
                                             f.bool(b -> b.must(filterQuery));
                                         }
                                         return f;
                                     })
-                                    .aggregations("terms", ta -> ta
-                                            .terms(t -> t.field(field + ".keyword")))));
+                                    .aggregations("terms", Aggregation.of(ta -> ta
+                                            .terms(t -> t.field(field + ".keyword")))))))));
             
             SearchResponse<Map> response = client.search(requestBuilder.build(), Map.class);
             
@@ -284,7 +284,7 @@ public class ElasticsearchAggregation {
             SearchRequest.Builder requestBuilder = new SearchRequest.Builder()
                     .index(indices)
                     .size(0)
-                    .aggregation(aggregationName, a -> a
+                    .aggregations(Map.of(aggregationName, Aggregation.of(a -> a
                             .terms(t -> t
                                     .field(field + ".keyword")
                                     .size(size > 0 ? size : ElasticsearchConstants.MAX_AGGREGATION_SIZE)
@@ -293,7 +293,7 @@ public class ElasticsearchAggregation {
                                             inc.regexp(".*" + search.toLowerCase() + ".*");
                                         }
                                         return inc;
-                                    })));
+                                    })))));
             
             SearchResponse<Map> response = client.search(requestBuilder.build(), Map.class);
             

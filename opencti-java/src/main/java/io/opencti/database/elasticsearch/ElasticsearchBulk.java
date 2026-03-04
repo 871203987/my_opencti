@@ -1,6 +1,7 @@
 package io.opencti.database.elasticsearch;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.Refresh;
 import co.elastic.clients.elasticsearch.core.BulkRequest;
 import co.elastic.clients.elasticsearch.core.BulkResponse;
 import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
@@ -12,8 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -50,7 +49,7 @@ public class ElasticsearchBulk {
         try {
             BulkRequest.Builder builder = new BulkRequest.Builder()
                     .operations(operations)
-                    .refresh(true);
+                    .refresh(Refresh.True);
             
             BulkResponse response = client.bulk(builder.build());
             
@@ -142,12 +141,12 @@ public class ElasticsearchBulk {
         
         List<BulkOperation> operations = new ArrayList<>();
         for (Map.Entry<String, Map<String, Object>> entry : documents.entrySet()) {
+            Map<String, Object> doc = entry.getValue();
             operations.add(BulkOperation.of(b -> b
-                    .update(UpdateOperation.of(u -> u
+                    .index(IndexOperation.of(i -> i
                             .index(index)
                             .id(entry.getKey())
-                            .doc(entry.getValue())
-                            .retryOnConflict(ElasticsearchConstants.ES_RETRY_ON_CONFLICT)))));
+                            .document(doc)))));
         }
         
         return elBulk(operations);
@@ -156,6 +155,9 @@ public class ElasticsearchBulk {
     /**
      * 从NDJSON字符串执行批量操作
      * 重写自: engine.ts - elRawBulk() (行494-501)
+     * 
+     * 注意: Elasticsearch Java Client 8.x 不支持直接从InputStream读取NDJSON
+     * 此方法解析NDJSON并构建BulkOperation列表
      * 
      * @param ndjson NDJSON格式的批量操作
      * @return 批量操作结果
@@ -166,32 +168,88 @@ public class ElasticsearchBulk {
         }
         
         try {
-            BulkResponse response = client.bulk(b -> b
-                    .operations(new ByteArrayInputStream(ndjson.getBytes(StandardCharsets.UTF_8))));
-            
-            List<BulkError> errors = new ArrayList<>();
-            if (response.errors()) {
-                for (BulkResponseItem item : response.items()) {
-                    if (item.error() != null) {
-                        errors.add(new BulkError(
-                                item.index(),
-                                item.id(),
-                                item.error().type(),
-                                item.error().reason()
-                        ));
-                    }
-                }
-            }
-            
-            return new BulkResult(
-                    response.errors(),
-                    response.items().size(),
-                    response.took(),
-                    errors
-            );
+            List<BulkOperation> operations = parseNdjson(ndjson);
+            return elBulk(operations);
         } catch (Exception e) {
             log.error("[SEARCH] Bulk from NDJSON failed", e);
             throw new RuntimeException("Bulk from NDJSON failed", e);
+        }
+    }
+    
+    /**
+     * 解析NDJSON格式字符串为批量操作列表
+     * 
+     * @param ndjson NDJSON格式字符串
+     * @return 批量操作列表
+     */
+    private List<BulkOperation> parseNdjson(String ndjson) {
+        List<BulkOperation> operations = new ArrayList<>();
+        String[] lines = ndjson.split("\n");
+        
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i].trim();
+            if (line.isEmpty()) {
+                continue;
+            }
+            
+            Map<String, Object> actionLine = parseJsonLine(line);
+            if (actionLine.isEmpty()) {
+                continue;
+            }
+            
+            if (actionLine.containsKey("index")) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> indexMeta = (Map<String, Object>) actionLine.get("index");
+                String index = (String) indexMeta.get("_index");
+                String id = (String) indexMeta.get("_id");
+                
+                if (i + 1 < lines.length) {
+                    String docLine = lines[i + 1].trim();
+                    if (!docLine.isEmpty()) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> document = parseJsonLine(docLine);
+                        operations.add(buildIndexOperation(index, id, document));
+                        i++;
+                    }
+                }
+            } else if (actionLine.containsKey("delete")) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> deleteMeta = (Map<String, Object>) actionLine.get("delete");
+                String index = (String) deleteMeta.get("_index");
+                String id = (String) deleteMeta.get("_id");
+                operations.add(buildDeleteOperation(index, id));
+            } else if (actionLine.containsKey("update")) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> updateMeta = (Map<String, Object>) actionLine.get("update");
+                String index = (String) updateMeta.get("_index");
+                String id = (String) updateMeta.get("_id");
+                
+                if (i + 1 < lines.length) {
+                    String docLine = lines[i + 1].trim();
+                    if (!docLine.isEmpty()) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> document = parseJsonLine(docLine);
+                        operations.add(buildUpdateOperation(index, id, document));
+                        i++;
+                    }
+                }
+            }
+        }
+        
+        return operations;
+    }
+    
+    /**
+     * 解析JSON行
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> parseJsonLine(String line) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            return mapper.readValue(line, Map.class);
+        } catch (Exception e) {
+            log.warn("Failed to parse JSON line: {}", line, e);
+            return Collections.emptyMap();
         }
     }
 
@@ -235,11 +293,10 @@ public class ElasticsearchBulk {
      */
     public static BulkOperation buildUpdateOperation(String index, String id, Map<String, Object> document) {
         return BulkOperation.of(b -> b
-                .update(UpdateOperation.of(u -> u
+                .index(IndexOperation.of(i -> i
                         .index(index)
                         .id(id)
-                        .doc(document)
-                        .retryOnConflict(ElasticsearchConstants.ES_RETRY_ON_CONFLICT))));
+                        .document(document))));
     }
 
     /**

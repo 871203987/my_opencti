@@ -1,6 +1,7 @@
 package io.opencti.database.elasticsearch.model;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * ES搜索响应

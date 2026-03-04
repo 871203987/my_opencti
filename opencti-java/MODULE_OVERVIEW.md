@@ -176,7 +176,9 @@ opencti-java/
                 ├── ElasticsearchClientTest.java
                 ├── ElasticsearchIndicesTest.java
                 ├── FilterBuilderTest.java
-                └── QueryBuilderTest.java
+                ├── QueryBuilderTest.java
+                ├── ElasticsearchSearchTest.java
+                └── ElasticsearchDocumentTest.java
 ```
 
 ## 模块状态总览
@@ -507,8 +509,10 @@ opencti-java/
 | ElasticsearchIndicesTest | 12 |
 | FilterBuilderTest | 10 |
 | QueryBuilderTest | 18 |
+| ElasticsearchSearchTest | 18 |
+| ElasticsearchDocumentTest | 18 |
 
-**总计**: 219个测试
+**总计**: 255个测试
 
 ---
 

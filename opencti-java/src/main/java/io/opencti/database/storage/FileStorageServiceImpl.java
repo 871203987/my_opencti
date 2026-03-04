@@ -326,8 +326,9 @@ public class FileStorageServiceImpl implements FileStorageService {
     private List<S3FileObject> filesAdaptation(List<Item> objects) {
         List<S3FileObject> storageObjects = new ArrayList<>();
         for (Item obj : objects) {
-            if (obj.key() != null) {
-                S3FileObject s3Obj = new S3FileObject(obj.key(), guessMimeType(obj.key()));
+            String objectName = obj.objectName();
+            if (objectName != null) {
+                S3FileObject s3Obj = new S3FileObject(objectName, guessMimeType(objectName));
                 if (!isFileObjectExcluded(s3Obj.getKey())) {
                     storageObjects.add(s3Obj);
                 }

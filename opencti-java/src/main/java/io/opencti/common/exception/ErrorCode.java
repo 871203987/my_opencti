@@ -1,12 +1,9 @@
 package io.opencti.common.exception;
 
-import lombok.Getter;
-
 /**
  * 重写自: opencti-graphql/src/config/errors.js
  * 错误码枚举定义
  */
-@Getter
 public enum ErrorCode {
 
     // Authentication Errors (401)
@@ -67,6 +64,18 @@ public enum ErrorCode {
         this.code = code;
         this.message = message;
         this.httpStatus = httpStatus;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public int getHttpStatus() {
+        return httpStatus;
     }
 
     public static ErrorCode fromCode(String code) {

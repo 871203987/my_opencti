@@ -1,10 +1,12 @@
 package io.opencti.database.elasticsearch.query;
 
+import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.json.JsonData;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * ES过滤器构建器
@@ -77,9 +79,12 @@ public class FilterBuilder {
         authorizedIds.add("ALL"); // MEMBER_ACCESS_ALL
         authorizedIds.addAll(userIds);
         
+        List<FieldValue> authorizedIdValues = authorizedIds.stream()
+            .map(FieldValue::of)
+            .toList();
         Query authorizedMembersIdsTerms = Query.of(q -> q.terms(t -> t
                 .field("authorized_members.id.keyword")
-                .terms(ts -> ts.value(authorizedIds))));
+                .terms(ts -> ts.value(authorizedIdValues))));
         
         // 构建组限制条件
         List<Query> groupConditions = new ArrayList<>();
@@ -149,7 +154,7 @@ public class FilterBuilder {
         
         return Query.of(q -> q.bool(b -> b
                 .should(shouldConditions)
-                .minimumShouldMatch(1)));
+                .minimumShouldMatch("1")));
     }
 
     /**
@@ -182,9 +187,12 @@ public class FilterBuilder {
             return null;
         }
         
+        List<FieldValue> typeValues = types.stream()
+            .map(FieldValue::of)
+            .toList();
         return Query.of(q -> q.terms(t -> t
                 .field("entity_type.keyword")
-                .terms(ts -> ts.value(types))));
+                .terms(ts -> ts.value(typeValues))));
     }
 
     /**
@@ -198,9 +206,12 @@ public class FilterBuilder {
             return null;
         }
         
+        List<FieldValue> idValues = ids.stream()
+            .map(FieldValue::of)
+            .toList();
         return Query.of(q -> q.terms(t -> t
                 .field("internal_id.keyword")
-                .terms(ts -> ts.value(ids))));
+                .terms(ts -> ts.value(idValues))));
     }
 
     /**
@@ -216,16 +227,18 @@ public class FilterBuilder {
             return null;
         }
         
-        return Query.of(q -> q.range(r -> {
-            r.field(field);
-            if (startTime != null) {
-                r.gte(JsonData.of(startTime));
-            }
-            if (endTime != null) {
-                r.lte(JsonData.of(endTime));
-            }
-            return r;
-        }));
+        return Query.of(q -> q.range(r -> r
+            .untyped(u -> {
+                u.field(field);
+                if (startTime != null) {
+                    u.gte(JsonData.of(startTime));
+                }
+                if (endTime != null) {
+                    u.lte(JsonData.of(endTime));
+                }
+                return u;
+            })
+        ));
     }
 
     /**
@@ -284,9 +297,12 @@ public class FilterBuilder {
                 @SuppressWarnings("unchecked")
                 List<String> values = (List<String>) value;
                 if (!values.isEmpty()) {
+                    List<FieldValue> fieldValues = values.stream()
+                        .map(FieldValue::of)
+                        .toList();
                     mustFilters.add(Query.of(q -> q.terms(t -> t
                             .field(key + ".keyword")
-                            .terms(ts -> ts.value(values)))));
+                            .terms(ts -> ts.value(fieldValues)))));
                 }
             } else {
                 mustFilters.add(Query.of(q -> q.term(t -> t

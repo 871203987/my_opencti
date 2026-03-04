@@ -45,6 +45,7 @@ public class FileStorageClientImpl implements FileStorageClient {
     @PostConstruct
     public void initializeClient() {
         String endpoint = config.getEndpoint();
+        int port = config.getPort();
         String region = config.getRegion();
         String accessKey = config.getAccessKey();
         String secretKey = config.getSecretKey();
@@ -52,11 +53,10 @@ public class FileStorageClientImpl implements FileStorageClient {
 
         MinioClient.Builder builder = MinioClient.builder()
                 .region(region)
-                .credentials(accessKey, secretKey)
-                .secure(useSsl);
+                .credentials(accessKey, secretKey);
 
         if (endpoint != null) {
-            builder.endpoint(endpoint);
+            builder.endpoint(endpoint, port, useSsl);
         }
 
         this.minioClient = builder.build();

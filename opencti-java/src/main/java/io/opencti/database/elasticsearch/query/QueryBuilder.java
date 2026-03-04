@@ -1,5 +1,6 @@
 package io.opencti.database.elasticsearch.query;
 
+import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.query_dsl.*;
 import co.elastic.clients.json.JsonData;
 
@@ -115,25 +116,32 @@ public class QueryBuilder {
     /**
      * 创建terms查询
      * 重写自: engine.ts - terms查询
+     * ES 8.x需要将List<String>转换为List<FieldValue>
      */
     public static Query terms(String field, List<String> values) {
-        return Query.of(q -> q.terms(t -> t.field(field).terms(ts -> ts.value(values))));
+        List<FieldValue> fieldValues = values.stream()
+            .map(FieldValue::of)
+            .toList();
+        return Query.of(q -> q.terms(t -> t.field(field).terms(ts -> ts.value(fieldValues))));
     }
 
     /**
      * 创建range查询
+     * ES 8.x使用untyped()方法构建range查询
      */
     public static Query range(String field, Object gte, Object lte) {
-        return Query.of(q -> q.range(r -> {
-            r.field(field);
-            if (gte != null) {
-                r.gte(JsonData.of(gte));
-            }
-            if (lte != null) {
-                r.lte(JsonData.of(lte));
-            }
-            return r;
-        }));
+        return Query.of(q -> q.range(r -> r
+            .untyped(u -> {
+                u.field(field);
+                if (gte != null) {
+                    u.gte(JsonData.of(gte));
+                }
+                if (lte != null) {
+                    u.lte(JsonData.of(lte));
+                }
+                return u;
+            })
+        ));
     }
 
     /**

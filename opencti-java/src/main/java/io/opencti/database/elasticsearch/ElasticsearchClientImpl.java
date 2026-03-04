@@ -1,6 +1,5 @@
 package io.opencti.database.elasticsearch;
 
-import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.HealthStatus;
 import co.elastic.clients.elasticsearch.cluster.HealthResponse;
 import co.elastic.clients.elasticsearch.core.*;
@@ -31,7 +30,7 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
     private static final Logger log = LoggerFactory.getLogger(ElasticsearchClientImpl.class);
 
     private final ElasticsearchConfig config;
-    private ElasticsearchClient client;
+    private co.elastic.clients.elasticsearch.ElasticsearchClient esClient;
     private String enginePlatform;
     private String engineVersion;
     private boolean runtimeSortingEnable = false;
@@ -50,7 +49,7 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
     public boolean searchEngineInit() {
         try {
             // 创建ES客户端
-            this.client = createElasticsearchClient();
+            this.esClient = createElasticsearchClient();
             
             // 获取引擎版本信息
             EngineVersion version = searchEngineVersion();
@@ -81,7 +80,7 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
      * 创建Elasticsearch客户端
      * 重写自: engine.ts - searchEngineInit() (行361-380)
      */
-    private ElasticsearchClient createElasticsearchClient() {
+    private co.elastic.clients.elasticsearch.ElasticsearchClient createElasticsearchClient() {
         // TODO: 完整实现SSL配置和认证
         // 目前使用基本配置
         String url = config.getUrl();
@@ -102,12 +101,24 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
     @Override
     public EngineVersion searchEngineVersion() {
         try {
-            InfoResponse info = client.info();
+            InfoResponse info = esClient.info();
             String version = info.version().number();
-            String distribution = info.version().distribution();
+            
+            // ES 8.x中distribution()方法不存在，需要通过其他方式判断引擎类型
+            // OpenSearch的版本号格式不同，且cluster_name可能包含opensearch
+            // 通过检查version.build_flavor或其他特征判断
+            String buildFlavor = info.version().buildFlavor();
+            String platform;
             
             // 判断是Elasticsearch还是OpenSearch
-            String platform = distribution != null ? distribution : ElasticsearchConstants.ENGINE_ELK;
+            // OpenSearch通常有特定的build_flavor或版本格式
+            if (buildFlavor != null && buildFlavor.contains("opensearch")) {
+                platform = ElasticsearchConstants.ENGINE_OPENSEARCH;
+            } else if (version.toLowerCase().contains("opensearch")) {
+                platform = ElasticsearchConstants.ENGINE_OPENSEARCH;
+            } else {
+                platform = ElasticsearchConstants.ENGINE_ELK;
+            }
             
             return new EngineVersion(platform, version);
         } catch (Exception e) {
@@ -123,7 +134,7 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
     @Override
     public boolean isEngineAlive() {
         try {
-            HealthResponse health = client.cluster().health();
+            HealthResponse health = esClient.cluster().health();
             return health.status() != HealthStatus.Red;
         } catch (Exception e) {
             log.error("[SEARCH] Engine health check failed", e);
@@ -189,7 +200,7 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
                 return s;
             });
             
-            return client.search(request, Map.class);
+            return esClient.search(request, Map.class);
         } catch (Exception e) {
             log.error("[SEARCH] Raw search failed", e);
             throw new RuntimeException("Search failed", e);
@@ -203,7 +214,7 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
     @Override
     public Map<String, Object> elRawGet(String id, String index) {
         try {
-            GetResponse<Map> response = client.get(g -> g
+            GetResponse<Map> response = esClient.get(g -> g
                     .index(index)
                     .id(id), Map.class);
             
@@ -229,7 +240,7 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
             @SuppressWarnings("unchecked")
             Map<String, Object> document = (Map<String, Object>) args.get("body");
             
-            IndexResponse response = client.index(i -> i
+            IndexResponse response = esClient.index(i -> i
                     .index(index)
                     .id(id)
                     .document(document));
@@ -255,7 +266,7 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
             String index = (String) args.get("index");
             String id = (String) args.get("id");
             
-            DeleteResponse response = client.delete(d -> d
+            DeleteResponse response = esClient.delete(d -> d
                     .index(index)
                     .id(id));
             
@@ -338,7 +349,7 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
     public long elRawCount(Map<String, Object> query) {
         try {
             // TODO: 实现完整的count
-            CountResponse response = client.count(c -> c);
+            CountResponse response = esClient.count(c -> c);
             return response.count();
         } catch (Exception e) {
             log.error("[SEARCH] Count failed", e);
@@ -353,7 +364,7 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
     @Override
     public boolean elIndexExists(String indexName) {
         try {
-            BooleanResponse response = client.indices().exists(e -> e
+            BooleanResponse response = esClient.indices().exists(e -> e
                     .index(indexName));
             return response.value();
         } catch (Exception e) {
@@ -369,7 +380,7 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
     @Override
     public boolean elCreateIndex(String indexName, Map<String, Object> mappingProperties) {
         try {
-            client.indices().create(c -> c
+            esClient.indices().create(c -> c
                     .index(indexName));
             log.info("[SEARCH] Index created: {}", indexName);
             return true;
@@ -386,7 +397,7 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
     @Override
     public boolean elDeleteIndex(String indexName) {
         try {
-            client.indices().delete(d -> d.index(indexName));
+            esClient.indices().delete(d -> d.index(indexName));
             log.info("[SEARCH] Index deleted: {}", indexName);
             return true;
         } catch (Exception e) {
@@ -402,7 +413,7 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
     @Override
     public List<Map<String, Object>> elPlatformIndices() {
         try {
-            GetIndexResponse response = client.indices().get(g -> g
+            GetIndexResponse response = esClient.indices().get(g -> g
                     .index(config.getIndexPrefix() + "*"));
             
             List<Map<String, Object>> indices = new ArrayList<>();
@@ -426,7 +437,7 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
     @Override
     public Map<String, Object> elPlatformMapping(String indexName) {
         try {
-            GetMappingResponse response = client.indices().getMapping(g -> g
+            GetMappingResponse response = esClient.indices().getMapping(g -> g
                     .index(indexName));
             
             // TODO: 转换响应为Map

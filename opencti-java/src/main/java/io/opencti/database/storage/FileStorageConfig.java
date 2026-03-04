@@ -72,6 +72,13 @@ public class FileStorageConfig {
     }
 
     /**
+     * 获取端口
+     */
+    public int getPort() {
+        return properties.port() > 0 ? properties.port() : 9000;
+    }
+
+    /**
      * 是否使用AWS角色
      * 重写自: raw-file-storage.ts - buildCredentialProvider() (行36-57)
      */

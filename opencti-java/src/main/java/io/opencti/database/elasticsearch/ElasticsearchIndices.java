@@ -2,7 +2,11 @@ package io.opencti.database.elasticsearch;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.cat.IndicesResponse;
-import co.elastic.clients.elasticsearch.indices.*;
+import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
+import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
+import co.elastic.clients.elasticsearch.indices.DeleteIndexResponse;
+import co.elastic.clients.elasticsearch.indices.IndexSettings;
+import co.elastic.clients.elasticsearch.indices.PutIndexTemplateResponse;
 import co.elastic.clients.transport.endpoints.BooleanResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +60,7 @@ public class ElasticsearchIndices {
      */
     public Map<String, Object> elIndexGetAlias(String indexName) {
         try {
-            GetAliasResponse response = client.indices().getAlias(a -> a
+            var response = client.indices().getAlias(a -> a
                     .index(indexName));
             
             Map<String, Object> result = new HashMap<>();
@@ -79,16 +83,16 @@ public class ElasticsearchIndices {
     public List<Map<String, Object>> elPlatformIndices() {
         try {
             String indexPrefix = config.getIndexPrefix();
+            // ES 8.x Java Client的cat().indices()默认返回JSON格式，不需要format()方法
             IndicesResponse response = client.cat().indices(i -> i
-                    .index(indexPrefix + "*")
-                    .format("json"));
+                    .index(indexPrefix + "*"));
             
             List<Map<String, Object>> indices = new ArrayList<>();
             response.valueBody().forEach(record -> {
                 Map<String, Object> indexInfo = new HashMap<>();
                 indexInfo.put("index", record.index());
-                indexInfo.put("health", record.health() != null ? record.health().jsonValue() : null);
-                indexInfo.put("status", record.status() != null ? record.status().jsonValue() : null);
+                indexInfo.put("health", record.health());
+                indexInfo.put("status", record.status());
                 indexInfo.put("uuid", record.uuid());
                 indexInfo.put("pri", record.pri());
                 indexInfo.put("rep", record.rep());
@@ -113,7 +117,7 @@ public class ElasticsearchIndices {
      */
     public Map<String, Object> elPlatformMapping(String indexName) {
         try {
-            GetMappingResponse response = client.indices().getMapping(m -> m
+            var response = client.indices().getMapping(m -> m
                     .index(indexName));
             
             // 获取映射属性
@@ -137,7 +141,7 @@ public class ElasticsearchIndices {
      */
     public IndexSettingResult elIndexSetting(String indexName) {
         try {
-            GetSettingsResponse response = client.indices().getSettings(s -> s
+            var response = client.indices().getSettings(s -> s
                     .index(indexName));
             
             var indexSettings = response.get(indexName);
@@ -175,9 +179,9 @@ public class ElasticsearchIndices {
     public List<Map<String, Object>> elPlatformTemplates() {
         try {
             String indexPrefix = config.getIndexPrefix();
+            // ES 8.x Java Client的cat().templates()默认返回JSON格式，不需要format()方法
             var response = client.cat().templates(t -> t
-                    .name(indexPrefix + "*")
-                    .format("json"));
+                    .name(indexPrefix + "*"));
             
             List<Map<String, Object>> templates = new ArrayList<>();
             response.valueBody().forEach(record -> {
@@ -219,7 +223,7 @@ public class ElasticsearchIndices {
             // 创建索引并设置别名
             client.indices().create(c -> c
                     .index(fullIndexName)
-                    .aliases(a -> a.alias(indexName)));
+                    .aliases(indexName, a -> a.isWriteIndex(true)));
             
             log.info("[SEARCH] Index created: {} with alias: {}", fullIndexName, indexName);
             return true;
@@ -355,12 +359,8 @@ public class ElasticsearchIndices {
                             .settings(s -> s
                                     .index(i -> i
                                             .maxResultWindow(config.getMaxResultWindow())
-                                            .numberOfShards(1)
-                                            .numberOfReplicas(0))
-                                    .analysis(a -> a
-                                            .normalizer(n -> n
-                                                    .normalizer("string_normalizer", nr -> nr
-                                                            .filter("lowercase", "asciifolding")))))));
+                                            .numberOfShards("1")
+                                            .numberOfReplicas("0")))));
             
             log.info("[SEARCH] Core settings updated");
         } catch (Exception e) {
@@ -378,16 +378,17 @@ public class ElasticsearchIndices {
             String indexPrefix = config.getIndexPrefix();
             
             // ES ILM策略
+            // ES 8.x中minAge需要使用Time对象
             client.ilm().putLifecycle(p -> p
                     .name(indexPrefix + "-ilm-policy")
                     .policy(policy -> policy
                             .phases(phases -> phases
                                     .hot(hot -> hot
-                                            .minAge("0ms")
+                                            .minAge(t -> t.time("0ms"))
                                             .actions(actions -> actions
                                                     .rollover(r -> r
                                                             .maxPrimaryShardSize("50gb")
-                                                            .maxDocs(100000000))
+                                                            .maxDocs(100000000L))
                                                     .setPriority(sp -> sp.priority(100)))))));
             
             log.info("[SEARCH] Lifecycle policy created");

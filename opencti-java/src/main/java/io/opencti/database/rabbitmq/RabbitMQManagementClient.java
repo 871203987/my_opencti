@@ -110,15 +110,7 @@ public class RabbitMQManagementClient {
             sslContext.init(null, new TrustManager[] { createTrustAllManager() }, null);
             
             final SSLContext finalSslContext = sslContext;
-            factory.setRequestCustomizer(request -> {
-                if (request instanceof HttpURLConnection) {
-                    HttpURLConnection connection = (HttpURLConnection) request;
-                    if (connection instanceof HttpsURLConnection) {
-                        ((HttpsURLConnection) connection).setSSLSocketFactory(finalSslContext.getSocketFactory());
-                        ((HttpsURLConnection) connection).setHostnameVerifier((hostname, session) -> true);
-                    }
-                }
-            });
+            factory.setConnectTimeout(java.time.Duration.ofSeconds(30));
             
             log.warn("[RABBITMQ] SSL certificate validation is DISABLED for Management API. This should only be used in development/testing environments.");
         } catch (Exception e) {
