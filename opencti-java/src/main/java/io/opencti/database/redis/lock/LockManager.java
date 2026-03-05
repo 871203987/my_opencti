@@ -65,6 +65,29 @@ public class LockManager {
     }
 
     /**
+     * Acquire a distributed lock with default options.
+     * Simplified method for middleware usage.
+     */
+    public DistributedLock acquireLock(List<String> resources, List<String> existingLocks) {
+        LockOptions options = new LockOptions(30000, null, true);
+        List<String> toLock = new ArrayList<>(resources);
+        if (existingLocks != null) {
+            toLock.removeAll(existingLocks);
+        }
+        if (toLock.isEmpty()) {
+            return new DistributedLock(redisClient, resources, UUID.randomUUID().toString(), options.ttl(), keyPrefix);
+        }
+        return lockResource(toLock, options);
+    }
+
+    /**
+     * Acquire a distributed lock with default options (no existing locks).
+     */
+    public DistributedLock acquireLock(List<String> resources) {
+        return acquireLock(resources, null);
+    }
+
+    /**
      * Try to acquire a lock with retries.
      */
     private boolean tryAcquireLock(String lockKey, String lockId, long ttl) {

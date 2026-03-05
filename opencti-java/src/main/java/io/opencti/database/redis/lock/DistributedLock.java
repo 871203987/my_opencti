@@ -55,6 +55,13 @@ public class DistributedLock {
     }
 
     /**
+     * Release the lock (alias for unlock).
+     */
+    public void release() {
+        unlock();
+    }
+
+    /**
      * Extend the lock TTL.
      * Original: lock.extend function
      */
@@ -110,6 +117,24 @@ public class DistributedLock {
 
         public boolean isAborted() {
             return aborted;
+        }
+
+        /**
+         * Throw an exception if the lock has been aborted.
+         */
+        public void throwIfAborted() {
+            if (aborted) {
+                throw new LockAbortedException("Lock operation was aborted");
+            }
+        }
+    }
+
+    /**
+     * Exception thrown when lock is aborted.
+     */
+    public static class LockAbortedException extends RuntimeException {
+        public LockAbortedException(String message) {
+            super(message);
         }
     }
 }
