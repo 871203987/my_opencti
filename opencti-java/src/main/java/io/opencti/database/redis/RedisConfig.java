@@ -1,7 +1,6 @@
 package io.opencti.database.redis;
 
 import io.lettuce.core.ClientOptions;
-import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.SslOptions;
 import io.opencti.common.config.RedisProperties;
@@ -9,6 +8,7 @@ import io.opencti.common.config.RedisProperties.RedisMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.io.File;
@@ -160,5 +160,14 @@ public class RedisConfig {
      */
     public RedisMode getRedisMode() {
         return properties.getRedisMode();
+    }
+
+    /**
+     * 创建RedisClient bean
+     * 原始方法: createRedisClient
+     */
+    @Bean
+    public RedisClient redisClient() {
+        return new RedisClientImpl(this, "opencti", true);
     }
 }

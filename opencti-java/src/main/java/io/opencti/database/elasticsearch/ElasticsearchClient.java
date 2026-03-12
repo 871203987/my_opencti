@@ -1,14 +1,10 @@
 package io.opencti.database.elasticsearch;
 
-import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-import co.elastic.clients.elasticsearch.core.SearchResponse;
-import co.elastic.clients.elasticsearch.core.search.Hit;
-
 import java.util.List;
 import java.util.Map;
 
 /**
- * Elasticsearch客户端接口
+ * Elasticsearch/OpenSearch客户端接口
  * 重写自: opencti-platform/opencti-graphql/src/database/engine.ts
  * 
  * 提供ES/OpenSearch核心操作，包括:
@@ -23,7 +19,7 @@ public interface ElasticsearchClient {
      * 初始化搜索引擎
      * 重写自: engine.ts - searchEngineInit() (行355-437)
      * 
-     * 初始化ES/OpenSearch客户端，检测引擎类型和版本
+     * 初始化OpenSearch客户端，检测引擎类型和版本
      * @return 初始化是否成功
      */
     boolean searchEngineInit();
@@ -62,12 +58,16 @@ public interface ElasticsearchClient {
 
     /**
      * 获取引擎平台类型
+     * 重写自: engine.ts - enginePlatform (行424)
+     *
      * @return 引擎平台 (elk/opensearch)
      */
     String getEnginePlatform();
 
     /**
      * 获取引擎版本号
+     * 重写自: engine.ts - engineVersion (行425)
+     *
      * @return 版本号字符串
      */
     String getEngineVersion();
@@ -75,11 +75,11 @@ public interface ElasticsearchClient {
     /**
      * 原始搜索
      * 重写自: engine.ts - elRawSearch() (行440-460)
-     * 
+     *
      * @param query 查询条件
      * @return 搜索响应
      */
-    SearchResponse<Map> elRawSearch(Map<String, Object> query);
+    Map<String, Object> elRawSearch(Map<String, Object> query);
 
     /**
      * 原始获取

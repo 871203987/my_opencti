@@ -54,7 +54,12 @@ public record ElasticsearchProperties(
     String indexCreationPattern,
     boolean searchWildcardPrefix,
     boolean searchFuzzy,
-    @Min(1) int maxRuntimeResolutions
+    @Min(1) int maxRuntimeResolutions,
+    // AWS OpenSearch 配置
+    String region,
+    String service,
+    String accessKey,
+    String secretKey
 ) {
     /**
      * 获取索引创建模式
@@ -62,5 +67,54 @@ public record ElasticsearchProperties(
      */
     public String getIndexCreationPattern() {
         return indexCreationPattern != null ? indexCreationPattern : "-000001";
+    }
+
+    /**
+     * 获取引擎选择器
+     * 默认值: "auto"
+     * 重写自: engine.ts - engineSelector (行398)
+     */
+    public String getEngineSelector() {
+        return engineSelector != null && !engineSelector.isEmpty() ? engineSelector : "auto";
+    }
+
+    /**
+     * 获取引擎检查开关
+     * 默认值: true
+     * 重写自: engine.ts - engineCheck (行399)
+     */
+    public boolean isEngineCheck() {
+        return engineCheck;
+    }
+
+    /**
+     * 获取AWS区域
+     * 重写自: engine.ts - opensearch:region (行360)
+     */
+    public String getRegion() {
+        return region;
+    }
+
+    /**
+     * 获取AWS服务名称
+     * 默认值: "es"
+     * 重写自: engine.ts - opensearch:service (行386)
+     */
+    public String getService() {
+        return service != null && !service.isEmpty() ? service : "es";
+    }
+
+    /**
+     * 获取AWS访问密钥
+     */
+    public String getAccessKey() {
+        return accessKey;
+    }
+
+    /**
+     * 获取AWS密钥
+     */
+    public String getSecretKey() {
+        return secretKey;
     }
 }

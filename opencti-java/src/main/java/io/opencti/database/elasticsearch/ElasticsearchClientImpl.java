@@ -1,51 +1,60 @@
 package io.opencti.database.elasticsearch;
 
-import co.elastic.clients.elasticsearch._types.HealthStatus;
-import co.elastic.clients.elasticsearch.cluster.HealthResponse;
-import co.elastic.clients.elasticsearch.core.*;
-import co.elastic.clients.elasticsearch.indices.ExistsRequest;
-import co.elastic.clients.elasticsearch.indices.GetIndexRequest;
-import co.elastic.clients.elasticsearch.indices.GetIndexResponse;
-import co.elastic.clients.elasticsearch.indices.GetMappingRequest;
-import co.elastic.clients.elasticsearch.indices.GetMappingResponse;
-import co.elastic.clients.json.jackson.JacksonJsonpMapper;
-import co.elastic.clients.transport.endpoints.BooleanResponse;
-import co.elastic.clients.transport.rest_client.RestClientTransport;
-import org.apache.http.HttpHost;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestClientBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
-
+import io.opencti.common.config.ElasticsearchProperties;
 import jakarta.annotation.PostConstruct;
-import java.io.ByteArrayInputStream;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.client5.http.auth.CredentialsProvider;
+import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
+import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
+import org.apache.hc.core5.util.Timeout;
+import org.opensearch.client.RestClient;
+import org.opensearch.client.RestClientBuilder;
+import org.opensearch.client.opensearch.OpenSearchClient;
+import org.opensearch.client.opensearch.core.InfoResponse;
+import org.opensearch.client.transport.OpenSearchTransport;
+import org.opensearch.client.transport.rest_client.RestClientTransport;
+import org.opensearch.client.json.jackson.JacksonJsonpMapper;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.net.URISyntaxException;
+import java.util.Map;
+import java.util.List;
+
+import static io.opencti.database.elasticsearch.ElasticsearchConstants.ENGINE_ELK;
+import static io.opencti.database.elasticsearch.ElasticsearchConstants.ENGINE_OPENSEARCH;
 
 /**
- * Elasticsearch客户端实现类
+ * Elasticsearch/OpenSearch客户端实现类
  * 重写自: opencti-platform/opencti-graphql/src/database/engine.ts
- * 
- * 支持Elasticsearch和OpenSearch双引擎
+ *
+ * 提供对Elasticsearch和OpenSearch的双引擎支持:
+ * - 引擎自动检测和手动选择
+ * - 响应格式统一处理
+ * - 引擎特定功能适配
  */
-@Component
+@Slf4j
+@Service
 public class ElasticsearchClientImpl implements ElasticsearchClient {
 
-    private static final Logger log = LoggerFactory.getLogger(ElasticsearchClientImpl.class);
-
+    private final ElasticsearchProperties properties;
     private final ElasticsearchConfig config;
-    private co.elastic.clients.elasticsearch.ElasticsearchClient esClient;
+
+    // OpenSearch客户端
+    private OpenSearchClient openSearchClient;
+    // Elasticsearch客户端 (ES 8.x Java API Client)
+    private co.elastic.clients.elasticsearch.ElasticsearchClient elasticsearchClient;
+
+    // 当前活动的客户端类型
     private String enginePlatform;
     private String engineVersion;
-    private boolean runtimeSortingEnable = false;
+    private boolean runtimeSortEnabled = false;
     private boolean attachmentProcessorEnabled = false;
 
-    public ElasticsearchClientImpl(ElasticsearchConfig config) {
+    public ElasticsearchClientImpl(ElasticsearchProperties properties, ElasticsearchConfig config) {
+        this.properties = properties;
         this.config = config;
     }
 
@@ -53,88 +62,109 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
      * 初始化搜索引擎
      * 重写自: engine.ts - searchEngineInit() (行355-437)
      */
-    @Override
     @PostConstruct
+    @Override
     public boolean searchEngineInit() {
+        log.info("[SEARCH] Starting search engine initialization...");
+
+        // 构建OpenSearch客户端配置
+        RestClientBuilder openSearchRestClientBuilder = buildOpenSearchRestClientBuilder();
+        OpenSearchTransport openSearchTransport = new RestClientTransport(
+                openSearchRestClientBuilder.build(), new JacksonJsonpMapper());
+        this.openSearchClient = new OpenSearchClient(openSearchTransport);
+
+        // 获取引擎选择器配置
+        String engineSelector = properties.getEngineSelector();
+        boolean engineCheck = properties.isEngineCheck();
+
         try {
-            // 创建ES客户端
-            this.esClient = createElasticsearchClient();
-            
-            // 获取引擎版本信息
-            EngineVersion version = searchEngineVersion();
-            this.enginePlatform = version.platform();
-            this.engineVersion = version.version();
-            
-            // 检测运行时排序支持
-            // 重写自: engine.ts (行430)
-            this.runtimeSortingEnable = ElasticsearchConstants.ENGINE_ELK.equals(enginePlatform) 
-                    && isVersionSatisfied(engineVersion, ">=7.12.0");
-            
+            if (ENGINE_ELK.equals(engineSelector)) {
+                log.info("[SEARCH] Engine {} client selected by configuration", ENGINE_ELK);
+                this.enginePlatform = ENGINE_ELK;
+                // TODO: 初始化Elasticsearch客户端
+                if (engineCheck) {
+                    EngineVersion version = searchEngineVersion();
+                    if (!ENGINE_ELK.equals(version.platform())) {
+                        throw new RuntimeException("Invalid Search engine selector: configured=" + engineSelector
+                                + ", detected=" + version.platform());
+                    }
+                }
+            } else if (ENGINE_OPENSEARCH.equals(engineSelector)) {
+                log.info("[SEARCH] Engine {} client selected by configuration", ENGINE_OPENSEARCH);
+                this.enginePlatform = ENGINE_OPENSEARCH;
+                EngineVersion version = searchEngineVersion();
+                if (engineCheck && !ENGINE_OPENSEARCH.equals(version.platform())) {
+                    throw new RuntimeException("Invalid Search engine selector: configured=" + engineSelector
+                            + ", detected=" + version.platform());
+                }
+                this.engineVersion = version.version();
+            } else {
+                // auto模式 - 先尝试使用OpenSearch客户端检测
+                log.info("[SEARCH] Engine client not specified, trying to discover it with {} client", ENGINE_OPENSEARCH);
+                EngineVersion version = searchEngineVersion();
+                this.enginePlatform = version.platform();
+                this.engineVersion = version.version();
+                log.info("[SEARCH] Engine detected to {}", enginePlatform);
+
+                // 如果检测到的是Elasticsearch，需要切换到Elasticsearch客户端
+                if (ENGINE_ELK.equals(enginePlatform)) {
+                    // TODO: 初始化Elasticsearch客户端
+                }
+            }
+
+            // 设置运行时排序启用状态 (仅Elasticsearch 7.12+支持)
+            runtimeSortEnabled = ENGINE_ELK.equals(enginePlatform) && isVersionAtLeast(engineVersion, "7.12.0");
+
             // 配置附件处理器
-            this.attachmentProcessorEnabled = elConfigureAttachmentProcessor();
-            
-            String runtimeStatus = runtimeSortingEnable ? "enabled" : "disabled";
-            log.info("[SEARCH] {} ({}) client selected / runtime sorting {} / attachment processor {}", 
-                    enginePlatform, engineVersion, runtimeStatus, 
+            attachmentProcessorEnabled = configureAttachmentProcessor();
+
+            log.info("[SEARCH] {} ({}) client selected / runtime sorting {} / attachment processor {}",
+                    enginePlatform, engineVersion,
+                    runtimeSortEnabled ? "enabled" : "disabled",
                     attachmentProcessorEnabled ? "enabled" : "disabled");
-            
+
             return true;
         } catch (Exception e) {
-            log.warn("[SEARCH] Elasticsearch not available, running in degraded mode: {}", e.getMessage());
-            this.enginePlatform = "unknown";
-            this.engineVersion = "0.0.0";
-            return false;
+            log.error("[SEARCH] Failed to initialize search engine", e);
+            throw new RuntimeException("Failed to initialize search engine", e);
         }
     }
 
     /**
-     * 创建Elasticsearch客户端
-     * 重写自: engine.ts - searchEngineInit() (行361-380)
-     * 支持Elasticsearch和OpenSearch
+     * 构建OpenSearch REST客户端构建器
      */
-    private co.elastic.clients.elasticsearch.ElasticsearchClient createElasticsearchClient() {
-        String url = config.getUrl();
-        String username = config.getUsername();
-        String password = config.getPassword();
-        String engineSelector = config.getEngineSelector();
-        
-        log.info("[SEARCH] Creating search client for URL: {} (engine: {})", url, engineSelector);
-        
+    private RestClientBuilder buildOpenSearchRestClientBuilder() {
+        String url = properties.url();
+        HttpHost httpHost;
         try {
             URI uri = new URI(url);
-            String host = uri.getHost();
-            int port = uri.getPort() > 0 ? uri.getPort() : 9200;
-            String scheme = uri.getScheme() != null ? uri.getScheme() : "http";
-            
-            HttpHost httpHost = new HttpHost(host, port, scheme);
-            
-            RestClientBuilder builder = RestClient.builder(httpHost);
-            
-            if (username != null && !username.isEmpty() && password != null && !password.isEmpty()) {
-                builder.setHttpClientConfigCallback(httpClientBuilder -> {
-                    BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-                    credentialsProvider.setCredentials(
-                            new AuthScope(httpHost),
-                            new UsernamePasswordCredentials(username, password)
-                    );
-                    httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
-                    return httpClientBuilder;
-                });
-            }
-            
-            RestClient restClient = builder.build();
-            
-            // 创建传输层
-            RestClientTransport transport = new RestClientTransport(
-                    restClient, 
-                    new JacksonJsonpMapper()
-            );
-            
-            return new co.elastic.clients.elasticsearch.ElasticsearchClient(transport);
-        } catch (Exception e) {
-            log.error("[SEARCH] Failed to create search client: {}", e.getMessage());
-            throw new RuntimeException("Failed to create search client", e);
+            httpHost = new HttpHost(uri.getScheme(), uri.getHost(), uri.getPort());
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException("Invalid Elasticsearch URL: " + url, e);
         }
+
+        RestClientBuilder builder = RestClient.builder(httpHost);
+
+        // 配置认证
+        String username = properties.username();
+        String password = properties.password();
+        if (username != null && !username.isEmpty() && password != null) {
+            BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+            credentialsProvider.setCredentials(
+                    new org.apache.hc.client5.http.auth.AuthScope(null, -1),
+                    new UsernamePasswordCredentials(username, password.toCharArray())
+            );
+            builder.setHttpClientConfigCallback(httpClientBuilder ->
+                    httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
+        }
+
+        // 配置超时
+        builder.setRequestConfigCallback(requestConfigBuilder ->
+                requestConfigBuilder
+                        .setConnectTimeout(Timeout.ofMilliseconds(properties.requestTimeout()))
+                        .setResponseTimeout(Timeout.ofMilliseconds(properties.requestTimeout())));
+
+        return builder;
     }
 
     /**
@@ -144,28 +174,17 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
     @Override
     public EngineVersion searchEngineVersion() {
         try {
-            InfoResponse info = esClient.info();
-            String version = info.version().number();
-            
-            // ES 8.x中distribution()方法不存在，需要通过其他方式判断引擎类型
-            // OpenSearch的版本号格式不同，且cluster_name可能包含opensearch
-            // 通过检查version.build_flavor或其他特征判断
-            String buildFlavor = info.version().buildFlavor();
-            String platform;
-            
-            // 判断是Elasticsearch还是OpenSearch
-            // OpenSearch通常有特定的build_flavor或版本格式
-            if (buildFlavor != null && buildFlavor.contains("opensearch")) {
-                platform = ElasticsearchConstants.ENGINE_OPENSEARCH;
-            } else if (version.toLowerCase().contains("opensearch")) {
-                platform = ElasticsearchConstants.ENGINE_OPENSEARCH;
-            } else {
-                platform = ElasticsearchConstants.ENGINE_ELK;
-            }
-            
+            InfoResponse info = openSearchClient.info();
+            var versionInfo = info.version();
+
+            // OpenSearch返回的distribution字段为"opensearch"，Elasticsearch返回null
+            String distribution = versionInfo.distribution();
+            String platform = (distribution != null && !distribution.isEmpty()) ? distribution : ENGINE_ELK;
+            String version = versionInfo.number();
+
             return new EngineVersion(platform, version);
-        } catch (Exception e) {
-            log.error("[SEARCH] Search engine seems down", e);
+        } catch (IOException e) {
+            log.error("[SEARCH] Failed to get search engine version", e);
             throw new RuntimeException("Search engine seems down", e);
         }
     }
@@ -177,10 +196,15 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
     @Override
     public boolean isEngineAlive() {
         try {
-            HealthResponse health = esClient.cluster().health();
-            return health.status() != HealthStatus.Red;
+            if (ENGINE_OPENSEARCH.equals(enginePlatform)) {
+                openSearchClient.ping();
+                return true;
+            } else {
+                // TODO: Elasticsearch客户端ping
+                return true;
+            }
         } catch (Exception e) {
-            log.error("[SEARCH] Engine health check failed", e);
+            log.warn("[SEARCH] Engine is not alive", e);
             return false;
         }
     }
@@ -191,7 +215,7 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
      */
     @Override
     public boolean isRuntimeSortEnable() {
-        return runtimeSortingEnable;
+        return runtimeSortEnabled;
     }
 
     /**
@@ -204,321 +228,131 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
     }
 
     /**
-     * 配置附件处理器
-     * 重写自: engine.ts - elConfigureAttachmentProcessor() (行296-338)
+     * 获取引擎平台类型
      */
-    private boolean elConfigureAttachmentProcessor() {
-        try {
-            // TODO: 实现附件处理器管道配置
-            // client.ingest().putPipeline(...)
-            log.info("[SEARCH] Attachment processor configured");
-            return true;
-        } catch (Exception e) {
-            log.error("[SEARCH] Engine attachment processor configuration fail", e);
-            return false;
-        }
-    }
-
     @Override
     public String getEnginePlatform() {
         return enginePlatform;
     }
 
+    /**
+     * 获取引擎版本号
+     */
     @Override
     public String getEngineVersion() {
         return engineVersion;
     }
 
     /**
-     * 原始搜索
-     * 重写自: engine.ts - elRawSearch() (行440-460)
+     * 配置附件处理器
+     * 重写自: engine.ts - elConfigureAttachmentProcessor() (行296-338)
      */
-    @Override
-    public SearchResponse<Map> elRawSearch(Map<String, Object> query) {
-        try {
-            // 将Map转换为JSON字符串，然后解析为SearchRequest
-            String json = mapToJson(query);
-            SearchRequest request = SearchRequest.of(s -> {
-                // TODO: 完整实现查询构建
-                return s;
-            });
-            
-            return esClient.search(request, Map.class);
-        } catch (Exception e) {
-            log.error("[SEARCH] Raw search failed", e);
-            throw new RuntimeException("Search failed", e);
-        }
+    private boolean configureAttachmentProcessor() {
+        // TODO: 实现附件处理器配置
+        // Elasticsearch和OpenSearch的配置方式不同
+        return false;
     }
 
     /**
-     * 原始获取
-     * 重写自: engine.ts - elRawGet() (行462-469)
+     * 检查版本是否至少为指定版本
      */
+    private boolean isVersionAtLeast(String version, String minVersion) {
+        if (version == null || minVersion == null) {
+            return false;
+        }
+        // 简单的版本比较，实际应该使用语义化版本比较
+        return version.compareTo(minVersion) >= 0;
+    }
+
+    // ==================== 原始操作方法的占位实现 ====================
+
+    @Override
+    public Map<String, Object> elRawSearch(Map<String, Object> query) {
+        // TODO: 实现原始搜索
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+
     @Override
     public Map<String, Object> elRawGet(String id, String index) {
-        try {
-            GetResponse<Map> response = esClient.get(g -> g
-                    .index(index)
-                    .id(id), Map.class);
-            
-            if (response.found()) {
-                return response.source();
-            }
-            return null;
-        } catch (Exception e) {
-            log.error("[SEARCH] Raw get failed for id: {}, index: {}", id, index, e);
-            throw new RuntimeException("Get failed", e);
-        }
+        // TODO: 实现原始获取
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
-    /**
-     * 原始索引
-     * 重写自: engine.ts - elRawIndex() (行470-477)
-     */
     @Override
     public Map<String, Object> elRawIndex(Map<String, Object> args) {
-        try {
-            String index = (String) args.get("index");
-            String id = (String) args.get("id");
-            @SuppressWarnings("unchecked")
-            Map<String, Object> document = (Map<String, Object>) args.get("body");
-            
-            IndexResponse response = esClient.index(i -> i
-                    .index(index)
-                    .id(id)
-                    .document(document));
-            
-            return Map.of(
-                    "_index", response.index(),
-                    "_id", response.id(),
-                    "result", response.result().jsonValue()
-            );
-        } catch (Exception e) {
-            log.error("[SEARCH] Raw index failed", e);
-            throw new RuntimeException("Index failed", e);
-        }
+        // TODO: 实现原始索引
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
-    /**
-     * 原始删除
-     * 重写自: engine.ts - elRawDelete() (行478-485)
-     */
     @Override
     public Map<String, Object> elRawDelete(Map<String, Object> args) {
-        try {
-            String index = (String) args.get("index");
-            String id = (String) args.get("id");
-            
-            DeleteResponse response = esClient.delete(d -> d
-                    .index(index)
-                    .id(id));
-            
-            return Map.of(
-                    "_index", response.index(),
-                    "_id", response.id(),
-                    "result", response.result().jsonValue()
-            );
-        } catch (Exception e) {
-            log.error("[SEARCH] Raw delete failed", e);
-            throw new RuntimeException("Delete failed", e);
-        }
+        // TODO: 实现原始删除
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
-    /**
-     * 按查询删除
-     * 重写自: engine.ts - elRawDeleteByQuery() (行486-493)
-     */
     @Override
     public Map<String, Object> elRawDeleteByQuery(Map<String, Object> query) {
-        try {
-            // TODO: 实现完整的deleteByQuery
-            return Map.of("deleted", 0);
-        } catch (Exception e) {
-            log.error("[SEARCH] Delete by query failed", e);
-            throw new RuntimeException("Delete by query failed", e);
-        }
+        // TODO: 实现按查询删除
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
-    /**
-     * 批量操作
-     * 重写自: engine.ts - elRawBulk() (行494-501)
-     */
     @Override
     public Map<String, Object> elRawBulk(Map<String, Object> args) {
-        try {
-            // TODO: 实现完整的bulk操作
-            return Map.of("errors", false);
-        } catch (Exception e) {
-            log.error("[SEARCH] Bulk operation failed", e);
-            throw new RuntimeException("Bulk failed", e);
-        }
+        // TODO: 实现批量操作
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
-    /**
-     * 按查询更新
-     * 重写自: engine.ts - elRawUpdateByQuery() (行502-509)
-     */
     @Override
     public Map<String, Object> elRawUpdateByQuery(Map<String, Object> query) {
-        try {
-            // TODO: 实现完整的updateByQuery
-            return Map.of("updated", 0);
-        } catch (Exception e) {
-            log.error("[SEARCH] Update by query failed", e);
-            throw new RuntimeException("Update by query failed", e);
-        }
+        // TODO: 实现按查询更新
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
-    /**
-     * 重建索引
-     * 重写自: engine.ts - elRawReindexByQuery() (行510-517)
-     */
     @Override
     public Map<String, Object> elRawReindexByQuery(Map<String, Object> query) {
-        try {
-            // TODO: 实现完整的reindex
-            return Map.of("total", 0);
-        } catch (Exception e) {
-            log.error("[SEARCH] Reindex failed", e);
-            throw new RuntimeException("Reindex failed", e);
-        }
+        // TODO: 实现重建索引
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
-    /**
-     * 原始计数
-     * 重写自: engine.ts - elRawCount() (行3077-3088)
-     */
     @Override
     public long elRawCount(Map<String, Object> query) {
-        try {
-            // TODO: 实现完整的count
-            CountResponse response = esClient.count(c -> c);
-            return response.count();
-        } catch (Exception e) {
-            log.error("[SEARCH] Count failed", e);
-            throw new RuntimeException("Count failed", e);
-        }
+        // TODO: 实现原始计数
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
-    /**
-     * 检查索引是否存在
-     * 重写自: engine.ts - elIndexExists() (行728-735)
-     */
     @Override
     public boolean elIndexExists(String indexName) {
-        try {
-            BooleanResponse response = esClient.indices().exists(e -> e
-                    .index(indexName));
-            return response.value();
-        } catch (Exception e) {
-            log.error("[SEARCH] Index exists check failed for: {}", indexName, e);
-            return false;
-        }
+        // TODO: 实现索引存在检查
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
-    /**
-     * 创建索引
-     * 重写自: engine.ts - elCreateIndex() (行1357-1375)
-     */
     @Override
     public boolean elCreateIndex(String indexName, Map<String, Object> mappingProperties) {
-        try {
-            esClient.indices().create(c -> c
-                    .index(indexName));
-            log.info("[SEARCH] Index created: {}", indexName);
-            return true;
-        } catch (Exception e) {
-            log.error("[SEARCH] Create index failed for: {}", indexName, e);
-            throw new RuntimeException("Create index failed", e);
-        }
+        // TODO: 实现创建索引
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
-    /**
-     * 删除索引
-     * 重写自: engine.ts - elDeleteIndex() (行1342-1356)
-     */
     @Override
     public boolean elDeleteIndex(String indexName) {
-        try {
-            esClient.indices().delete(d -> d.index(indexName));
-            log.info("[SEARCH] Index deleted: {}", indexName);
-            return true;
-        } catch (Exception e) {
-            log.info("[SEARCH] Index cannot be deleted: {}", indexName);
-            return false;
-        }
+        // TODO: 实现删除索引
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
-    /**
-     * 获取平台索引列表
-     * 重写自: engine.ts - elPlatformIndices() (行745-753)
-     */
     @Override
     public List<Map<String, Object>> elPlatformIndices() {
-        try {
-            GetIndexResponse response = esClient.indices().get(g -> g
-                    .index(config.getIndexPrefix() + "*"));
-            
-            List<Map<String, Object>> indices = new ArrayList<>();
-            response.result().forEach((key, value) -> {
-                Map<String, Object> indexInfo = new HashMap<>();
-                indexInfo.put("index", key);
-                indices.add(indexInfo);
-            });
-            
-            return indices;
-        } catch (Exception e) {
-            log.error("[SEARCH] Get platform indices failed", e);
-            return Collections.emptyList();
-        }
+        // TODO: 实现获取平台索引列表
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
-    /**
-     * 获取索引映射
-     * 重写自: engine.ts - elPlatformMapping() (行754-761)
-     */
     @Override
     public Map<String, Object> elPlatformMapping(String indexName) {
-        try {
-            GetMappingResponse response = esClient.indices().getMapping(g -> g
-                    .index(indexName));
-            
-            // TODO: 转换响应为Map
-            return new HashMap<>();
-        } catch (Exception e) {
-            log.error("[SEARCH] Get mapping failed for: {}", indexName, e);
-            return Collections.emptyMap();
-        }
+        // TODO: 实现获取索引映射
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
-    /**
-     * 获取索引设置
-     * 重写自: engine.ts - elIndexSetting() (行762-775)
-     */
     @Override
     public Map<String, Object> elIndexSetting(String indexName) {
-        try {
-            // TODO: 实现获取索引设置
-            return new HashMap<>();
-        } catch (Exception e) {
-            log.error("[SEARCH] Get index setting failed for: {}", indexName, e);
-            return Collections.emptyMap();
-        }
-    }
-
-    /**
-     * 检查版本是否满足条件
-     */
-    private boolean isVersionSatisfied(String version, String constraint) {
-        // TODO: 实现版本比较逻辑
-        return true;
-    }
-
-    /**
-     * Map转JSON字符串
-     */
-    private String mapToJson(Map<String, Object> map) {
-        // TODO: 使用ObjectMapper
-        return map.toString();
+        // TODO: 实现获取索引设置
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 }

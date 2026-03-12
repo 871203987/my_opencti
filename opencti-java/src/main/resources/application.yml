@@ -65,7 +65,12 @@ opencti:
     index-prefix: "opencti"
     username: "admin"
     password: "admin"
-    engine-selector: "opensearch"
+    # 引擎选择器: auto(自动检测), elk(Elasticsearch), opensearch(OpenSearch)
+    # 重写自: engine.ts - engineSelector (行398)
+    engine-selector: "auto"
+    # 是否验证引擎类型与配置匹配
+    # 重写自: engine.ts - engineCheck (行399)
+    engine-check: true
     ssl-verification: false
     max-retries: 5
     request-timeout: 120000
@@ -80,6 +85,12 @@ opencti:
     max-connection-retries: 5
     max-result-window: 100000
     max-runtime-resolutions: 5000
+    # AWS OpenSearch 配置 (可选)
+    # 重写自: engine.ts - opensearch配置 (行382-394)
+    # region: "us-east-1"
+    # service: "es"
+    # access-key: ""
+    # secret-key: ""
 
   redis:
     hostname: "localhost"

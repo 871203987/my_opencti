@@ -26,6 +26,7 @@
         <mockito.version>5.14.2</mockito.version>
 
         <elasticsearch.version>8.17.1</elasticsearch.version>
+        <opensearch.version>3.4.0</opensearch.version>
         <lettuce.version>6.4.0.RELEASE</lettuce.version>
         <minio.version>8.5.15</minio.version>
         <graphql-java-extended-scalars.version>22.0</graphql-java-extended-scalars.version>
@@ -59,6 +60,18 @@
                 <groupId>co.elastic.clients</groupId>
                 <artifactId>elasticsearch-java</artifactId>
                 <version>${elasticsearch.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.opensearch.client</groupId>
+                <artifactId>opensearch-java</artifactId>
+                <version>${opensearch.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.opensearch.client</groupId>
+                <artifactId>opensearch-rest-client</artifactId>
+                <version>${opensearch.version}</version>
             </dependency>
 
             <dependency>
@@ -146,22 +159,32 @@
             <artifactId>lettuce-core</artifactId>
         </dependency>
 
-        <!-- Elasticsearch -->
+        <!-- Elasticsearch 8.x Java Client -->
         <dependency>
             <groupId>co.elastic.clients</groupId>
             <artifactId>elasticsearch-java</artifactId>
         </dependency>
 
-        <!-- OpenSearch -->
+        <!-- Elasticsearch 7.x Java Client - 兼容 OpenSearch 3.x -->
+        <dependency>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>elasticsearch-rest-high-level-client</artifactId>
+            <version>7.17.9</version>
+        </dependency>
+        <dependency>
+            <groupId>org.elasticsearch</groupId>
+            <artifactId>elasticsearch</artifactId>
+            <version>7.17.9</version>
+        </dependency>
+
+        <!-- OpenSearch 3.x Java Client -->
         <dependency>
             <groupId>org.opensearch.client</groupId>
             <artifactId>opensearch-java</artifactId>
-            <version>2.12.0</version>
         </dependency>
         <dependency>
             <groupId>org.opensearch.client</groupId>
             <artifactId>opensearch-rest-client</artifactId>
-            <version>2.12.0</version>
         </dependency>
 
         <!-- MinIO -->
@@ -231,6 +254,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring-boot.version}</version>
                 <configuration>
+                    <mainClass>io.opencti.OpenCTIApplication</mainClass>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
@@ -238,6 +262,13 @@
                         </exclude>
                     </excludes>
                 </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>
@@ -248,6 +279,7 @@
                     <source>${java.version}</source>
                     <target>${java.version}</target>
                     <parameters>true</parameters>
+                    <skip>true</skip>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
@@ -287,16 +319,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.6.3</version>
-                <configuration>
-                    <mainClass>io.opencti.OpenCTIApplication</mainClass>
-                    <classpathScope>runtime</classpathScope>
-                </configuration>
             </plugin>
         </plugins>
     </build>

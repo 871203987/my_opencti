@@ -3,6 +3,8 @@ package io.opencti.database.redis.lock;
 import io.opencti.database.redis.RedisClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,6 +15,7 @@ import java.util.UUID;
  * Original file: opencti-platform/opencti-graphql/src/database/redis.ts
  * Original functions: lockResource, redisAddDeletions, redisFetchLatestDeletions
  */
+@Component
 public class LockManager {
 
     private static final Logger log = LoggerFactory.getLogger(LockManager.class);
@@ -24,9 +27,10 @@ public class LockManager {
     private final RedisClient redisClient;
     private final String keyPrefix;
 
-    public LockManager(RedisClient redisClient, String keyPrefix) {
+    @Autowired
+    public LockManager(RedisClient redisClient) {
         this.redisClient = redisClient;
-        this.keyPrefix = keyPrefix;
+        this.keyPrefix = "opencti:";
     }
 
     /**
