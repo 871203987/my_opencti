@@ -3,6 +3,7 @@ package io.opencti.database.elasticsearch;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.aggregations.Aggregation;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
@@ -36,9 +37,20 @@ public class ElasticsearchSearch {
     }
 
     /**
+     * 按ID查找文档（简化版，兼容测试代码）
+     *
+     * @param indices 索引列表
+     * @param ids ID列表
+     * @return 文档列表
+     */
+    public List<Map<String, Object>> elFindByIds(List<String> indices, List<String> ids) {
+        return elFindByIds(indices, ids, null);
+    }
+
+    /**
      * 按ID查找文档
      * 重写自: engine.ts - elFindByIds() (行1720-1844)
-     * 
+     *
      * @param indices 索引列表
      * @param ids ID列表
      * @param opts 选项
@@ -72,9 +84,20 @@ public class ElasticsearchSearch {
     }
 
     /**
+     * 按ID加载单个文档（简化版，兼容测试代码）
+     *
+     * @param indices 索引列表
+     * @param id 文档ID
+     * @return 文档内容
+     */
+    public Map<String, Object> elLoadById(List<String> indices, String id) {
+        return elLoadById(indices, id, null);
+    }
+
+    /**
      * 按ID加载单个文档
      * 重写自: engine.ts - elLoadById() (行1845-1861)
-     * 
+     *
      * @param indices 索引列表
      * @param id 文档ID
      * @param opts 选项
@@ -188,9 +211,26 @@ public class ElasticsearchSearch {
     }
 
     /**
+     * 连接查询（用于GraphQL连接，简化版，兼容测试代码）
+     *
+     * @param indices 索引列表
+     * @param query 查询
+     * @param first 返回数量
+     * @param after 游标
+     * @return 连接响应
+     */
+    public ConnectionResponse elConnection(List<String> indices, Query query, int first, Integer after) {
+        ConnectionOptions opts = new ConnectionOptions();
+        opts.setQuery(query);
+        opts.setFirst(first);
+        opts.setAfter(after);
+        return elConnection(indices, opts);
+    }
+
+    /**
      * 连接查询（用于GraphQL连接）
      * 重写自: engine.ts - elConnection() (行3036-3045)
-     * 
+     *
      * @param indices 索引列表
      * @param opts 选项
      * @return 连接响应
@@ -224,9 +264,32 @@ public class ElasticsearchSearch {
     }
 
     /**
+     * 按字段加载（简化版，兼容测试代码）
+     *
+     * @param field 字段名
+     * @param value 字段值
+     * @return 文档内容
+     */
+    public Map<String, Object> elLoadBy(String field, String value) {
+        return elLoadBy(null, field, value, null);
+    }
+
+    /**
+     * 按字段加载（简化版，兼容测试代码）
+     *
+     * @param indices 索引列表
+     * @param field 字段名
+     * @param value 字段值
+     * @return 文档内容
+     */
+    public Map<String, Object> elLoadBy(List<String> indices, String field, String value) {
+        return elLoadBy(indices, field, value, null);
+    }
+
+    /**
      * 按字段加载
      * 重写自: engine.ts - elLoadBy() (行3056-3076)
-     * 
+     *
      * @param indices 索引列表
      * @param field 字段名
      * @param value 字段值

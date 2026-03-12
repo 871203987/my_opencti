@@ -90,13 +90,15 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
     /**
      * 创建Elasticsearch客户端
      * 重写自: engine.ts - searchEngineInit() (行361-380)
+     * 支持Elasticsearch和OpenSearch
      */
     private co.elastic.clients.elasticsearch.ElasticsearchClient createElasticsearchClient() {
         String url = config.getUrl();
         String username = config.getUsername();
         String password = config.getPassword();
+        String engineSelector = config.getEngineSelector();
         
-        log.info("[SEARCH] Creating Elasticsearch client for URL: {}", url);
+        log.info("[SEARCH] Creating search client for URL: {} (engine: {})", url, engineSelector);
         
         try {
             URI uri = new URI(url);
@@ -121,6 +123,8 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
             }
             
             RestClient restClient = builder.build();
+            
+            // 创建传输层
             RestClientTransport transport = new RestClientTransport(
                     restClient, 
                     new JacksonJsonpMapper()
@@ -128,8 +132,8 @@ public class ElasticsearchClientImpl implements ElasticsearchClient {
             
             return new co.elastic.clients.elasticsearch.ElasticsearchClient(transport);
         } catch (Exception e) {
-            log.error("[SEARCH] Failed to create Elasticsearch client: {}", e.getMessage());
-            throw new RuntimeException("Failed to create Elasticsearch client", e);
+            log.error("[SEARCH] Failed to create search client: {}", e.getMessage());
+            throw new RuntimeException("Failed to create search client", e);
         }
     }
 

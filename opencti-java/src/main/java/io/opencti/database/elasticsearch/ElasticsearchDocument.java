@@ -236,9 +236,21 @@ public class ElasticsearchDocument {
     }
 
     /**
+     * 更新文档（简化版，兼容测试代码）
+     *
+     * @param index 索引名
+     * @param id 文档ID
+     * @param document 更新内容
+     * @return 更新结果
+     */
+    public UpdateResult elUpdate(String index, String id, Map<String, Object> document) {
+        return elUpdate(index, id, document, ElasticsearchConstants.ES_RETRY_ON_CONFLICT);
+    }
+
+    /**
      * 更新文档
      * 重写自: engine.ts - elUpdate() (行3677-3700)
-     * 
+     *
      * @param index 索引名
      * @param id 文档ID
      * @param document 更新内容

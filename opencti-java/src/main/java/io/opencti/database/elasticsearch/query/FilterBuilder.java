@@ -7,6 +7,7 @@ import co.elastic.clients.json.JsonData;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * ES过滤器构建器
@@ -17,9 +18,28 @@ import java.util.Map;
 public class FilterBuilder {
 
     /**
+     * 构建数据限制过滤器（简化版，兼容测试代码）
+     *
+     * @param userIds 用户ID集合
+     * @param groupIds 组ID集合
+     * @param bypass 是否绕过权限检查
+     * @return 过滤器列表
+     */
+    public static List<Query> buildDataRestrictions(
+            Set<String> userIds,
+            Set<String> groupIds,
+            boolean bypass) {
+        return buildDataRestrictions(
+                userIds != null ? new ArrayList<>(userIds) : null,
+                groupIds != null ? new ArrayList<>(groupIds) : null,
+                null,
+                bypass);
+    }
+
+    /**
      * 构建数据限制过滤器
      * 重写自: engine.ts - buildDataRestrictions() (行618-726)
-     * 
+     *
      * @param userIds 用户ID列表
      * @param groupIds 组ID列表
      * @param markingIds 标记ID列表
@@ -53,9 +73,23 @@ public class FilterBuilder {
     }
 
     /**
+     * 构建用户成员访问过滤器（简化版，兼容测试代码）
+     *
+     * @param userIds 用户ID集合
+     * @return 过滤器列表
+     */
+    public static List<Query> buildUserMemberAccessFilter(Set<String> userIds) {
+        return buildUserMemberAccessFilter(
+                userIds != null ? new ArrayList<>(userIds) : null,
+                null,
+                false,
+                false);
+    }
+
+    /**
      * 构建用户成员访问过滤器
      * 重写自: engine.ts - buildUserMemberAccessFilter() (行561-616)
-     * 
+     *
      * @param userIds 用户ID列表
      * @param groupIds 组ID列表
      * @param includeAuthorities 是否包含权限

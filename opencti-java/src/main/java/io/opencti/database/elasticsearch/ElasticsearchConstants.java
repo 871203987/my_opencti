@@ -339,6 +339,40 @@ public final class ElasticsearchConstants {
      */
     public static final String UPDATE_OPERATION_REMOVE = "remove";
 
+    // ==================== 测试代码兼容常量 ====================
+    
+    /**
+     * 兼容旧测试代码的索引名称常量
+     */
+    public static final String STIX_DOMAIN_OBJECTS_INDEX = INDEX_STIX_DOMAIN_OBJECTS;
+    public static final String STIX_CORE_RELATIONSHIPS_INDEX = INDEX_STIX_CORE_RELATIONSHIPS;
+    public static final String STIX_SIGHTING_RELATIONSHIPS_INDEX = INDEX_STIX_SIGHTING_RELATIONSHIPS;
+    public static final String STIX_META_OBJECTS_INDEX = INDEX_STIX_META_OBJECTS;
+    public static final String STIX_META_RELATIONSHIPS_INDEX = INDEX_STIX_META_RELATIONSHIPS;
+    public static final String STIX_CORE_OBJECTS_INDEX = INDEX_STIX_CYBER_OBSERVABLES;
+    public static final String WORKBENCH_INDEX = INDEX_DRAFT_OBJECTS;
+    public static final String INTERNAL_INDEX = INDEX_INTERNAL_OBJECTS;
+    
+    /**
+     * 索引名称列表
+     */
+    public static final java.util.List<String> INDEX_NAMES = WRITE_PLATFORM_INDICES;
+    
+    /**
+     * 搜索默认参数
+     */
+    public static final int DEFAULT_MAX_SEARCH_RESULT = ES_MAX_PAGINATION;
+    public static final int DEFAULT_SEARCH_OFFSET = 0;
+    public static final String DEFAULT_SEARCH_ORDER = "asc";
+    
+    /**
+     * 操作类型常量
+     */
+    public static final String OPERATION_CREATE = EVENT_TYPE_CREATE;
+    public static final String OPERATION_UPDATE = EVENT_TYPE_UPDATE;
+    public static final String OPERATION_DELETE = EVENT_TYPE_DELETE;
+    public static final String OPERATION_INDEX = "index";
+
     // ==================== 特殊字段 ====================
     
     /**

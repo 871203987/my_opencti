@@ -65,7 +65,7 @@ opencti:
     index-prefix: "opencti"
     username: "admin"
     password: "admin"
-    engine-selector: "auto"
+    engine-selector: "opensearch"
     ssl-verification: false
     max-retries: 5
     request-timeout: 120000

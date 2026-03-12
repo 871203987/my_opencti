@@ -114,6 +114,13 @@ public class QueryBuilder {
     }
 
     /**
+     * 创建term查询（布尔值，兼容测试代码）
+     */
+    public static Query term(String field, boolean value) {
+        return Query.of(q -> q.term(t -> t.field(field).value(value)));
+    }
+
+    /**
      * 创建terms查询
      * 重写自: engine.ts - terms查询
      * ES 8.x需要将List<String>转换为List<FieldValue>
@@ -186,6 +193,13 @@ public class QueryBuilder {
      */
     public static Query nested(String path, Query query) {
         return Query.of(q -> q.nested(n -> n.path(path).query(query)));
+    }
+
+    /**
+     * 创建bool查询（无参版本，兼容测试代码）
+     */
+    public static Query bool() {
+        return Query.of(q -> q.bool(b -> b));
     }
 
     /**
@@ -313,5 +327,107 @@ public class QueryBuilder {
      */
     public static Query empty() {
         return matchAll();
+    }
+
+    // ==================== 测试代码兼容方法 ====================
+
+    /**
+     * 添加must条件（兼容测试代码）
+     */
+    public static Query addMust(Query boolQuery, Query mustQuery) {
+        if (boolQuery == null || boolQuery.bool() == null) {
+            return Query.of(q -> q.bool(b -> b.must(mustQuery)));
+        }
+        BoolQuery original = boolQuery.bool();
+        BoolQuery.Builder builder = new BoolQuery.Builder();
+        if (original.must() != null) {
+            builder.must(original.must());
+        }
+        builder.must(mustQuery);
+        if (original.mustNot() != null) {
+            builder.mustNot(original.mustNot());
+        }
+        if (original.should() != null) {
+            builder.should(original.should());
+        }
+        if (original.filter() != null) {
+            builder.filter(original.filter());
+        }
+        return Query.of(q -> q.bool(builder.build()));
+    }
+
+    /**
+     * 添加should条件（兼容测试代码）
+     */
+    public static Query addShould(Query boolQuery, Query shouldQuery) {
+        if (boolQuery == null || boolQuery.bool() == null) {
+            return Query.of(q -> q.bool(b -> b.should(shouldQuery)));
+        }
+        BoolQuery original = boolQuery.bool();
+        BoolQuery.Builder builder = new BoolQuery.Builder();
+        if (original.must() != null) {
+            builder.must(original.must());
+        }
+        if (original.mustNot() != null) {
+            builder.mustNot(original.mustNot());
+        }
+        if (original.should() != null) {
+            builder.should(original.should());
+        }
+        builder.should(shouldQuery);
+        if (original.filter() != null) {
+            builder.filter(original.filter());
+        }
+        return Query.of(q -> q.bool(builder.build()));
+    }
+
+    /**
+     * 添加must_not条件（兼容测试代码）
+     */
+    public static Query addMustNot(Query boolQuery, Query mustNotQuery) {
+        if (boolQuery == null || boolQuery.bool() == null) {
+            return Query.of(q -> q.bool(b -> b.mustNot(mustNotQuery)));
+        }
+        BoolQuery original = boolQuery.bool();
+        BoolQuery.Builder builder = new BoolQuery.Builder();
+        if (original.must() != null) {
+            builder.must(original.must());
+        }
+        if (original.mustNot() != null) {
+            builder.mustNot(original.mustNot());
+        }
+        builder.mustNot(mustNotQuery);
+        if (original.should() != null) {
+            builder.should(original.should());
+        }
+        if (original.filter() != null) {
+            builder.filter(original.filter());
+        }
+        return Query.of(q -> q.bool(builder.build()));
+    }
+
+    /**
+     * 添加filter条件（兼容测试代码）
+     */
+    public static Query addFilter(Query boolQuery, Query filterQuery) {
+        if (boolQuery == null || boolQuery.bool() == null) {
+            return Query.of(q -> q.bool(b -> b.filter(filterQuery)));
+        }
+        BoolQuery original = boolQuery.bool();
+        BoolQuery.Builder builder = new BoolQuery.Builder();
+        if (original.must() != null) {
+            builder.must(original.must());
+        }
+        if (original.mustNot() != null) {
+            builder.mustNot(original.mustNot());
+        }
+        if (original.should() != null) {
+            builder.should(original.should());
+        }
+        if (original.filter() != null) {
+            builder.filter(original.filter());
+        }
+        builder.filter(filterQuery);
+        return Query.of(q -> q.bool(builder.build()));
     }
 }

@@ -100,11 +100,21 @@ public final class ElasticsearchMapping {
     );
 
     // ==================== 映射生成器 ====================
-    
+
+    /**
+     * 属性映射生成器（简化版，兼容测试代码）
+     *
+     * @param type 属性类型
+     * @return 映射配置
+     */
+    public static Map<String, Object> attributeMappingGenerator(String type) {
+        return attributeMappingGenerator(type, null, null);
+    }
+
     /**
      * 属性映射生成器
      * 重写自: engine.ts - attributeMappingGenerator() (行877-915)
-     * 
+     *
      * @param type 属性类型
      * @param format 属性格式
      * @param precision 数值精度
