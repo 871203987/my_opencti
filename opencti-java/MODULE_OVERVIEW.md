@@ -164,6 +164,22 @@ opencti-java/
     │   │           ├── MiddlewareUpdater.java
     │   │           └── MiddlewareUtils.java
     │   │
+    │   │   └── schema/                   # Schema定义层 (12个文件)
+    │   │       ├── general/
+    │   │       │   └── SchemaGeneral.java
+    │   │       ├── identifier/
+    │   │       │   └── SchemaIdentifier.java
+    │   │       ├── internal/
+    │   │       │   ├── InternalObjectSchema.java
+    │   │       │   ├── InternalRelationshipSchema.java
+    │   │       │   └── SchemaTypesDefinition.java
+    │   │       └── stix/
+    │   │           ├── StixCoreObjectSchema.java
+    │   │           ├── StixCoreRelationshipSchema.java
+    │   │           ├── StixRefRelationshipSchema.java
+    │   │           ├── StixRelationshipSchema.java
+    │   │           └── StixSightingRelationshipSchema.java
+    │   │
     │   └── resources/
     │       ├── application.yml
     │       ├── application-dev.yml
@@ -221,8 +237,12 @@ opencti-java/
 | database/storage (MinIO) | ✅ 已完成 | 2026-03-03 | 13 | ~1,970 |
 | database/elasticsearch | ✅ 已完成 | 2026-03-04 | 15 | ~3,500 |
 | database/middleware | ✅ 已完成 | 2026-03-04 | 22 | ~5,200 |
+| schema/general | ✅ 已完成 | 2026-03-12 | 1 | ~337 |
+| schema/identifier | ✅ 已完成 | 2026-03-12 | 1 | ~280 |
+| schema/internal | ✅ 已完成 | 2026-03-12 | 3 | ~400 |
+| schema/stix | ✅ 已完成 | 2026-03-12 | 6 | ~1,281 |
 
-**总计**: 159个主代码文件，约22,795行代码
+**总计**: 169个主代码文件，约24,612行代码
 
 ---
 
@@ -306,7 +326,73 @@ opencti-java/
 
 ---
 
-## Phase 2: 数据库层 🔄 进行中
+## Phase 3: Schema定义层 🔄 进行中
+
+> **开始日期**: 2026-03-12
+> **状态**: 基础Schema模块已完成
+
+### 3.1 Schema通用模块 `schema/`
+
+| 功能点 | 原文件 | Java实现 | 状态 |
+|--------|--------|----------|------|
+| 通用定义 | `general.js` | `SchemaGeneral.java` | ✅ 已完成 |
+| 标识符 | `identifier.js` | `SchemaIdentifier.java` | ✅ 已完成 |
+| 内部对象 | `internalObject.ts` | `InternalObjectSchema.java` | ✅ 已完成 |
+| 内部关系 | `internalRelationship.ts` | `InternalRelationshipSchema.java` | ✅ 已完成 |
+| STIX核心对象 | `stixCoreObject.ts` | `StixCoreObjectSchema.java` | ✅ 已完成 |
+| STIX核心关系 | `stixCoreRelationship.ts` | `StixCoreRelationshipSchema.java` | ✅ 已完成 |
+| STIX目击关系 | `stixSightingRelationship.ts` | `StixSightingRelationshipSchema.java` | ✅ 已完成 |
+| STIX引用关系 | `stixRefRelationship.ts` | `StixRefRelationshipSchema.java` | ✅ 已完成 |
+| STIX关系 | `stixRelationship.ts` | `StixRelationshipSchema.java` | ✅ 已完成 |
+| STIX域对象 | `stixDomainObject.ts` | `StixDomainObjectSchema.java` | ✅ 已完成 |
+
+#### 文件清单
+
+**schema/general/**
+| 文件 | 说明 |
+|------|------|
+| SchemaGeneral.java | Schema通用常量定义 (62个常量, 4个工具方法) |
+
+**schema/identifier/**
+| 文件 | 说明 |
+|------|------|
+| SchemaIdentifier.java | ID生成策略 (哈希算法、TLP标记、ID生成方法) |
+
+**schema/internal/**
+| 文件 | 说明 |
+|------|------|
+| InternalObjectSchema.java | 内部对象类型定义 (35种类型) |
+| InternalRelationshipSchema.java | 内部关系类型定义 (9种关系) |
+| SchemaTypesDefinition.java | 类型定义管理器 |
+
+**schema/stix/**
+| 文件 | 说明 |
+|------|------|
+| StixCoreObjectSchema.java | STIX核心对象判断方法 |
+| StixCoreRelationshipSchema.java | STIX核心关系类型 (58种关系) |
+| StixSightingRelationshipSchema.java | STIX目击关系类型 |
+| StixRefRelationshipSchema.java | STIX引用关系类型 (29+12种关系) |
+| StixRelationshipSchema.java | STIX关系组合判断方法 |
+| StixDomainObjectSchema.java | STIX域对象类型 (29种SDO类型, 8个分类列表, 7个判断方法, 3个别名方法) |
+
+### 3.2 测试覆盖
+
+| 测试类 | 测试数量 |
+|--------|----------|
+| SchemaGeneralTest | 16 |
+| SchemaIdentifierTest | 16 |
+| InternalObjectSchemaTest | 14 |
+| InternalRelationshipSchemaTest | 5 |
+| StixCoreObjectSchemaTest | 6 |
+| StixCoreRelationshipSchemaTest | 15 |
+| StixRelationshipSchemaTest | 24 |
+| StixDomainObjectSchemaTest | 25 |
+
+**Schema层测试总计**: 121个测试
+
+---
+
+## Phase 2: 数据库层 ✅ 已完成
 
 ### 2.1 Redis 客户端 ✅ 已完成
 
@@ -408,8 +494,16 @@ opencti-java/
 | QueryBuilderTest | 18 |
 | ElasticsearchSearchTest | 18 |
 | ElasticsearchDocumentTest | 18 |
+| SchemaGeneralTest | 16 |
+| SchemaIdentifierTest | 16 |
+| InternalObjectSchemaTest | 14 |
+| InternalRelationshipSchemaTest | 5 |
+| StixCoreObjectSchemaTest | 6 |
+| StixCoreRelationshipSchemaTest | 15 |
+| StixRelationshipSchemaTest | 24 |
+| StixDomainObjectSchemaTest | 25 |
 
-**总计**: 255个测试
+**总计**: 376个测试
 
 ---
 
